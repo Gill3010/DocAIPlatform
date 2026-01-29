@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.venv
+*.db
+*.sqlite
+*.sqlite3
+sql_app.db
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+dist/
+build/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+backend.log
+
+# Test coverage
+htmlcov/
+.coverage
+.pytest_cache/
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# System & Tools
+.antigravity-server/
+.gemini/
+.nvm/
+.npm/
+.bash_history
+.bash_logout
+.bashrc
+.profile
+.ssh/
+.sudo_as_admin_successful
+swapfile
