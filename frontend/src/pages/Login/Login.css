@@ -5,6 +5,14 @@
     justify-content: center;
     background: var(--gradient-primary);
     padding: var(--spacing-md);
+    position: relative;
+}
+
+.theme-toggle-wrapper {
+    position: absolute;
+    top: var(--spacing-lg);
+    right: var(--spacing-lg);
+    z-index: 10;
 }
 
 .login-card {

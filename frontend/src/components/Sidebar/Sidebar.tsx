@@ -1,11 +1,37 @@
-import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, RefreshCw, FileEdit, FolderClock, Bot, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { LayoutDashboard, RefreshCw, FileEdit, FolderClock, Bot, Settings, ChevronLeft, ChevronRight, User as UserIcon, LogOut, ChevronUp } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
+import { useState, useRef, useEffect } from 'react';
 import './Sidebar.css';
 
 export const Sidebar = () => {
     const location = useLocation();
-    const { sidebarCollapsed, toggleSidebar, user } = useAppStore();
+    const navigate = useNavigate();
+    const { sidebarCollapsed, toggleSidebar, user, logout } = useAppStore();
+    const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
+
+    // Close menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+                setUserMenuOpen(false);
+            }
+        };
+
+        if (userMenuOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [userMenuOpen]);
+
+    const handleLogout = () => {
+        logout();
+        navigate('/login');
+    };
 
     const menuItems = [
         { path: '/dashboard', icon: LayoutDashboard, label: 'Panel Principal' },
@@ -54,21 +80,53 @@ export const Sidebar = () => {
             </nav>
 
             {user && (
-                <div className="sidebar-footer">
-                    <div className="user-info">
+                <div className="sidebar-footer" ref={menuRef}>
+                    <button 
+                        className="user-info-button"
+                        onClick={() => setUserMenuOpen(!userMenuOpen)}
+                        title={sidebarCollapsed ? user.email : undefined}
+                    >
                         <div className="user-avatar">
                             {user.full_name?.charAt(0).toUpperCase() || user.email.charAt(0).toUpperCase()}
                         </div>
                         {!sidebarCollapsed && (
-                            <div className="user-details">
-                                <p className="user-name">{user.full_name || 'Usuario'}</p>
-                                <p className="user-email">{user.email}</p>
-                                <p className="user-credits">
-                                    {Math.max(0, 10 - user.free_conversion_count)} créditos disponibles
-                                </p>
-                            </div>
+                            <>
+                                <div className="user-details">
+                                    <p className="user-name">{user.full_name || 'Usuario'}</p>
+                                    <p className="user-email">{user.email}</p>
+                                    <p className="user-credits">
+                                        {Math.max(0, 10 - user.free_conversion_count)} créditos disponibles
+                                    </p>
+                                </div>
+                                <ChevronUp 
+                                    size={16} 
+                                    className={`user-menu-icon ${userMenuOpen ? 'open' : ''}`}
+                                />
+                            </>
                         )}
-                    </div>
+                    </button>
+
+                    {userMenuOpen && !sidebarCollapsed && (
+                        <div className="user-menu">
+                            <button 
+                                className="user-menu-item"
+                                onClick={() => {
+                                    setUserMenuOpen(false);
+                                    navigate('/settings');
+                                }}
+                            >
+                                <UserIcon size={16} />
+                                <span>Editar Perfil</span>
+                            </button>
+                            <button 
+                                className="user-menu-item logout"
+                                onClick={handleLogout}
+                            >
+                                <LogOut size={16} />
+                                <span>Cerrar Sesión</span>
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
         </aside>

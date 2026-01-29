@@ -21,7 +21,7 @@ export const useAppStore = create<AppState>()(
         (set) => ({
             user: null,
             token: null,
-            theme: 'dark',
+            theme: 'light',
             sidebarCollapsed: false,
 
             setUser: (user) => set({ user }),

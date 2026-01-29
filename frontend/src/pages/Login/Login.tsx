@@ -2,6 +2,7 @@ import { useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiService } from '../../services/api';
 import { useAppStore } from '../../stores/appStore';
+import { ThemeToggle } from '../../components/ThemeToggle/ThemeToggle';
 import './Login.css';
 
 export const Login = () => {
@@ -61,6 +62,9 @@ export const Login = () => {
 
     return (
         <div className="login-container">
+            <div className="theme-toggle-wrapper">
+                <ThemeToggle />
+            </div>
             <div className="login-card">
                 <div className="login-header">
                     <h1 className="login-logo">
