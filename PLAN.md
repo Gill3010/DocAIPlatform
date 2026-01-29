@@ -15,7 +15,7 @@ Este documento sirve como guía maestra para retomar el desarrollo del proyecto 
 - [x] Estructura de monorepo (Backend/Frontend).
 - [x] Git sincronizado con GitHub.
 
-### ✅ Fase 2: Backend (80%)
+### ✅ Fase 2: Backend (100%)
 - [x] Auth JWT (Login/Registro).
 - [x] Modelos de Usuario y Esquemas Pydantic.
 - [x] Conexión asíncrona a DB.
@@ -26,14 +26,22 @@ Este documento sirve como guía maestra para retomar el desarrollo del proyecto 
 - [x] Dashboard con métricas e iconos Lucide.
 - [x] **Componente de Conversión (UI):** Interfaz terminada con simulación de progreso.
 
+### ✅ Fase 4: Motor de Conversión Backend (100%)
+- [x] Modelo de Conversion en DB.
+- [x] Schemas Pydantic para conversión.
+- [x] Router `/api/v1/convert` con endpoints completos.
+- [x] Funciones de conversión ligeras (PNG→PDF, PDF→TXT, DOCX↔TXT).
+- [x] Sistema de créditos funcionando (10 conversiones gratis).
+- [x] Frontend conectado con backend real.
+
 ---
 
 ## 🚀 3. Tareas Pendientes (Roadmap)
 
-### Prioridad Alta: Motor de Conversión Real
-1.  **Endpoint de Subida:** Crear `/api/v1/convert/upload` en FastAPI.
-2.  **Integración S3:** Configurar AWS S3 para almacenamiento temporal de archivos.
-3.  **Primer Converter:** Implementar lógica para PDF -> Word o PNG -> PDF.
+### ~~Prioridad Alta: Motor de Conversión Real~~ ✅ COMPLETADO
+1.  ~~**Endpoint de Subida:** Crear `/api/v1/convert/upload` en FastAPI.~~
+2.  **Integración S3:** Configurar AWS S3 para almacenamiento externo (opcional para más adelante).
+3.  ~~**Primer Converter:** Implementar lógica para PDF -> Word o PNG -> PDF.~~
 
 ### Prioridad Media: Funcionalidades SaaS
 4.  **Historial:** Implementar página `/history` consumiendo datos de la DB.

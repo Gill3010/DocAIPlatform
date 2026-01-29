@@ -1,0 +1,298 @@
+import { useState, useCallback } from 'react';
+import { Upload, FileType, ArrowRight, CheckCircle2, AlertCircle, RefreshCw, X } from 'lucide-react';
+import { apiService } from '../../services/api';
+import './Convert.css';
+
+interface FileWithProgress {
+    file: File;
+    progress: number;
+    status: 'idle' | 'uploading' | 'converting' | 'completed' | 'error';
+    targetFormat: string;
+    conversionId?: number;
+    errorMessage?: string;
+    creditsRemaining?: number;
+}
+
+const SUPPORTED_FORMATS = [
+    { id: 'pdf', name: 'PDF Document', icon: '📄' },
+    { id: 'docx', name: 'Word Document', icon: '📝' },
+    { id: 'png', name: 'PNG Image', icon: '🖼️' },
+    { id: 'xml', name: 'XML Data', icon: '📁' },
+];
+
+export const Convert = () => {
+    const [dragActive, setDragActive] = useState(false);
+    const [selectedFile, setSelectedFile] = useState<FileWithProgress | null>(null);
+    const [targetFormat, setTargetFormat] = useState('pdf');
+
+    const handleDrag = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.type === "dragenter" || e.type === "dragover") {
+            setDragActive(true);
+        } else if (e.type === "dragleave") {
+            setDragActive(false);
+        }
+    }, []);
+
+    const handleDrop = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setDragActive(false);
+
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            const file = e.dataTransfer.files[0];
+            setSelectedFile({
+                file,
+                progress: 0,
+                status: 'idle',
+                targetFormat: 'pdf'
+            });
+        }
+    }, []);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setSelectedFile({
+                file,
+                progress: 0,
+                status: 'idle',
+                targetFormat: 'pdf'
+            });
+        }
+    };
+
+    const startConversion = async () => {
+        if (!selectedFile) return;
+
+        setSelectedFile(prev => prev ? { ...prev, status: 'uploading', progress: 0 } : null);
+
+        try {
+            // Simulate upload progress
+            const uploadInterval = setInterval(() => {
+                setSelectedFile(prev => {
+                    if (!prev || prev.progress >= 50) {
+                        clearInterval(uploadInterval);
+                        return prev;
+                    }
+                    return { ...prev, progress: prev.progress + 10 };
+                });
+            }, 200);
+
+            // Call real backend API
+            const response = await apiService.uploadAndConvert(
+                selectedFile.file,
+                targetFormat
+            );
+
+            clearInterval(uploadInterval);
+
+            // Update to converting status
+            setSelectedFile(prev => prev ? { 
+                ...prev, 
+                status: 'converting', 
+                progress: 60,
+                conversionId: response.conversion_id,
+                creditsRemaining: response.credits_remaining
+            } : null);
+
+            // Simulate conversion progress
+            const convertInterval = setInterval(() => {
+                setSelectedFile(prev => {
+                    if (!prev || prev.progress >= 100) {
+                        clearInterval(convertInterval);
+                        return prev ? { ...prev, status: 'completed', progress: 100 } : null;
+                    }
+                    return { ...prev, progress: prev.progress + 10 };
+                });
+            }, 300);
+
+        } catch (error: any) {
+            console.error('Conversion failed:', error);
+            setSelectedFile(prev => prev ? { 
+                ...prev, 
+                status: 'error',
+                errorMessage: error.message || 'Conversion failed. Please try again.'
+            } : null);
+        }
+    };
+
+    const reset = () => {
+        setSelectedFile(null);
+        setTargetFormat('pdf');
+    };
+
+    return (
+        <div className="convert-page">
+            <div className="convert-header">
+                <h2>Document Converter</h2>
+                <p>Upload your file and choose the output format</p>
+            </div>
+
+            <div className="convert-container">
+                {!selectedFile ? (
+                    <div
+                        className={`drop-zone ${dragActive ? 'active' : ''}`}
+                        onDragEnter={handleDrag}
+                        onDragLeave={handleDrag}
+                        onDragOver={handleDrag}
+                        onDrop={handleDrop}
+                    >
+                        <input
+                            type="file"
+                            id="file-upload"
+                            className="file-input"
+                            onChange={handleFileChange}
+                        />
+                        <label htmlFor="file-upload" className="drop-label">
+                            <div className="upload-icon-wrapper">
+                                <Upload size={40} className="upload-icon" />
+                            </div>
+                            <div className="drop-text">
+                                <h3>Click or drag file back here</h3>
+                                <p>PDF, Word, PNG, XML up to 10MB</p>
+                            </div>
+                            <button className="select-btn">Select File</button>
+                        </label>
+                    </div>
+                ) : (
+                    <div className="processing-container">
+                        <div className="file-preview-card">
+                            <div className="file-info">
+                                <div className="file-icon">
+                                    <FileType size={32} />
+                                </div>
+                                <div className="file-details">
+                                    <h4>{selectedFile.file.name}</h4>
+                                    <p>{(selectedFile.file.size / 1024 / 1024).toFixed(2)} MB</p>
+                                </div>
+                                {selectedFile.status === 'idle' && (
+                                    <button className="remove-file" onClick={reset}>
+                                        <X size={20} />
+                                    </button>
+                                )}
+                            </div>
+
+                            {selectedFile.status === 'idle' ? (
+                                <div className="conversion-settings">
+                                    <div className="format-selector">
+                                        <p className="label">Convert to:</p>
+                                        <div className="format-grid">
+                                            {SUPPORTED_FORMATS.map(f => (
+                                                <button
+                                                    key={f.id}
+                                                    className={`format-btn ${targetFormat === f.id ? 'active' : ''}`}
+                                                    onClick={() => setTargetFormat(f.id)}
+                                                >
+                                                    <span className="format-icon">{f.icon}</span>
+                                                    <span className="format-name">{f.name}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <button className="convert-btn" onClick={startConversion}>
+                                        Convert Now
+                                        <ArrowRight size={20} />
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="progress-section">
+                                    <div className="progress-status">
+                                        <span>
+                                            {selectedFile.status === 'uploading' ? 'Uploading...' :
+                                                selectedFile.status === 'converting' ? 'Processing...' :
+                                                    'Completed!'}
+                                        </span>
+                                        <span>{selectedFile.progress}%</span>
+                                    </div>
+                                    <div className="progress-bar-container">
+                                        <div
+                                            className="progress-bar"
+                                            style={{ width: `${selectedFile.progress}%` }}
+                                        ></div>
+                                    </div>
+                                    {selectedFile.status === 'completed' && (
+                                        <div className="result-actions">
+                                            <div className="success-msg">
+                                                <div>
+                                                    <CheckCircle2 size={24} className="text-success" />
+                                                    <span>File converted successfully!</span>
+                                                </div>
+                                                {selectedFile.creditsRemaining !== undefined && (
+                                                    <p className="credits-info">
+                                                        {selectedFile.creditsRemaining} free conversions remaining
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <div className="btn-group">
+                                                <button 
+                                                    className="download-btn"
+                                                    onClick={async () => {
+                                                        if (selectedFile.conversionId) {
+                                                            try {
+                                                                const blob = await apiService.downloadConvertedFile(selectedFile.conversionId);
+                                                                const url = window.URL.createObjectURL(blob);
+                                                                const a = document.createElement('a');
+                                                                a.href = url;
+                                                                a.download = `${selectedFile.file.name.split('.')[0]}_converted.${targetFormat}`;
+                                                                document.body.appendChild(a);
+                                                                a.click();
+                                                                window.URL.revokeObjectURL(url);
+                                                                document.body.removeChild(a);
+                                                            } catch (error) {
+                                                                alert('Download failed. Please try again.');
+                                                            }
+                                                        }
+                                                    }}
+                                                >
+                                                    Download Result
+                                                </button>
+                                                <button className="new-btn" onClick={reset}>
+                                                    <RefreshCw size={18} />
+                                                    New Conversion
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+                                    {selectedFile.status === 'error' && (
+                                        <div className="result-actions">
+                                            <div className="error-msg">
+                                                <div>
+                                                    <AlertCircle size={24} className="text-error" />
+                                                    <span>{selectedFile.errorMessage || 'Conversion failed'}</span>
+                                                </div>
+                                            </div>
+                                            <button className="new-btn" onClick={reset}>
+                                                <RefreshCw size={18} />
+                                                Try Again
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            <section className="conversion-info">
+                <h3>How it works</h3>
+                <div className="info-steps">
+                    <div className="info-step">
+                        <span className="step-num">1</span>
+                        <p>Upload your document safely to our cloud storage</p>
+                    </div>
+                    <div className="info-step">
+                        <span className="step-num">2</span>
+                        <p>Select target format and start processing</p>
+                    </div>
+                    <div className="info-step">
+                        <span className="step-num">3</span>
+                        <p>Download your converted file and save it in history</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    );
+};

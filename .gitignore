@@ -65,3 +65,22 @@ htmlcov/
 .ssh/
 .sudo_as_admin_successful
 swapfile
+
+# Cursor IDE
+.cursor/
+.cursor-server/
+
+# Database
+*.db
+sql_app.db
+
+# System scripts (server-specific)
+monitor.sh
+start.sh
+
+# Swap files
+/swapfile
+/swapfile2
+
+# Storage
+backend/storage/

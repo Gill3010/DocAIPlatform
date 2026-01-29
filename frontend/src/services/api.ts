@@ -61,6 +61,52 @@ class ApiService {
     async getCurrentUser(): Promise<User> {
         return this.request<User>('/users/me');
     }
+
+    async uploadAndConvert(file: File, targetFormat: string): Promise<any> {
+        const token = localStorage.getItem('token');
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await fetch(`${API_URL}/convert/upload?target_format=${targetFormat}`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+            body: formData,
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.detail || 'Upload failed');
+        }
+
+        return response.json();
+    }
+
+    async downloadConvertedFile(conversionId: number): Promise<Blob> {
+        const token = localStorage.getItem('token');
+
+        const response = await fetch(`${API_URL}/convert/download/${conversionId}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error('Download failed');
+        }
+
+        return response.blob();
+    }
+
+    async getConversionHistory(limit: number = 20): Promise<any[]> {
+        return this.request<any[]>(`/convert/history?limit=${limit}`);
+    }
+
+    async getSupportedFormats(): Promise<any> {
+        return this.request<any>('/convert/supported-formats');
+    }
 }
 
 export const apiService = new ApiService();
