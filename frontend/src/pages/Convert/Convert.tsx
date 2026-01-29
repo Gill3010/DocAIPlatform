@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { Upload, FileType, ArrowRight, CheckCircle2, AlertCircle, RefreshCw, X } from 'lucide-react';
+import { Upload, FileType, ArrowRight, CheckCircle2, AlertCircle, RefreshCw, X, FileText, Image, File, Globe, Ruler, GraduationCap } from 'lucide-react';
 import { apiService } from '../../services/api';
 import './Convert.css';
 
@@ -14,44 +14,44 @@ interface FileWithProgress {
 }
 
 // Conversiones soportadas por el backend (sistema modular)
-const CONVERSION_MAP: Record<string, Array<{ id: string; name: string; icon: string }>> = {
+const CONVERSION_MAP: Record<string, Array<{ id: string; name: string; icon: any }>> = {
     'png': [
-        { id: 'pdf', name: 'Documento PDF', icon: '📄' },
-        { id: 'dxf', name: 'Archivo DXF (CAD)', icon: '📐' }
+        { id: 'pdf', name: 'Documento PDF', icon: FileText },
+        { id: 'dxf', name: 'Archivo DXF (CAD)', icon: Ruler }
     ],
     'jpg': [
-        { id: 'pdf', name: 'Documento PDF', icon: '📄' },
-        { id: 'dxf', name: 'Archivo DXF (CAD)', icon: '📐' }
+        { id: 'pdf', name: 'Documento PDF', icon: FileText },
+        { id: 'dxf', name: 'Archivo DXF (CAD)', icon: Ruler }
     ],
     'jpeg': [
-        { id: 'pdf', name: 'Documento PDF', icon: '📄' },
-        { id: 'dxf', name: 'Archivo DXF (CAD)', icon: '📐' }
+        { id: 'pdf', name: 'Documento PDF', icon: FileText },
+        { id: 'dxf', name: 'Archivo DXF (CAD)', icon: Ruler }
     ],
     'pdf': [
-        { id: 'docx', name: 'Documento Word', icon: '📝' },
-        { id: 'png', name: 'Imagen PNG', icon: '🖼️' },
-        { id: 'txt', name: 'Texto Plano', icon: '📋' }
+        { id: 'docx', name: 'Documento Word', icon: File },
+        { id: 'png', name: 'Imagen PNG', icon: Image },
+        { id: 'txt', name: 'Texto Plano', icon: FileText }
     ],
     'txt': [
-        { id: 'docx', name: 'Documento Word', icon: '📄' }
+        { id: 'docx', name: 'Documento Word', icon: File }
     ],
     'docx': [
-        { id: 'pdf', name: 'Documento PDF', icon: '📄' },
-        { id: 'txt', name: 'Texto Plano', icon: '📋' },
-        { id: 'xml', name: 'XML JATS (Artículo Científico)', icon: '🎓' }
+        { id: 'pdf', name: 'Documento PDF', icon: FileText },
+        { id: 'txt', name: 'Texto Plano', icon: FileText },
+        { id: 'xml', name: 'XML JATS (Artículo Científico)', icon: GraduationCap }
     ],
     'xml': [
-        { id: 'html', name: 'Página HTML', icon: '🌐' },
-        { id: 'docx', name: 'Documento Word', icon: '📝' }
+        { id: 'html', name: 'Página HTML', icon: Globe },
+        { id: 'docx', name: 'Documento Word', icon: File }
     ],
     'html': [
-        { id: 'xml', name: 'Archivo XML', icon: '📋' }
+        { id: 'xml', name: 'Archivo XML', icon: FileText }
     ],
     'htm': [
-        { id: 'xml', name: 'Archivo XML', icon: '📋' }
+        { id: 'xml', name: 'Archivo XML', icon: FileText }
     ],
     'dxf': [
-        { id: 'png', name: 'Imagen PNG', icon: '🖼️' }
+        { id: 'png', name: 'Imagen PNG', icon: Image }
     ]
 };
 
@@ -241,16 +241,21 @@ export const Convert = () => {
                                         <p className="label">Convertir a:</p>
                                         {availableFormats.length > 0 ? (
                                             <div className="format-grid">
-                                                {availableFormats.map(f => (
-                                                    <button
-                                                        key={f.id}
-                                                        className={`format-btn ${targetFormat === f.id ? 'active' : ''}`}
-                                                        onClick={() => setTargetFormat(f.id)}
-                                                    >
-                                                        <span className="format-icon">{f.icon}</span>
-                                                        <span className="format-name">{f.name}</span>
-                                                    </button>
-                                                ))}
+                                                {availableFormats.map(f => {
+                                                    const IconComponent = f.icon;
+                                                    return (
+                                                        <button
+                                                            key={f.id}
+                                                            className={`format-btn ${targetFormat === f.id ? 'active' : ''}`}
+                                                            onClick={() => setTargetFormat(f.id)}
+                                                        >
+                                                            <span className="format-icon">
+                                                                <IconComponent size={24} />
+                                                            </span>
+                                                            <span className="format-name">{f.name}</span>
+                                                        </button>
+                                                    );
+                                                })}
                                             </div>
                                         ) : (
                                             <p className="no-formats-warning">⚠️ Este formato de archivo no tiene conversiones disponibles</p>

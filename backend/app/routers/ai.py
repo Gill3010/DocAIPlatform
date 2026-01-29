@@ -9,9 +9,13 @@ from backend.app.models.user import User
 
 router = APIRouter()
 
-# Initialize OpenAI client (will use OPENAI_API_KEY from environment)
+# Initialize OpenAI client with API key from settings
 try:
-    client = OpenAI()
+    if settings.OPENAI_API_KEY:
+        client = OpenAI(api_key=settings.OPENAI_API_KEY)
+    else:
+        print("Warning: OPENAI_API_KEY not configured in settings")
+        client = None
 except Exception as e:
     print(f"Warning: OpenAI client initialization failed: {e}")
     client = None

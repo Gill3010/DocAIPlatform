@@ -13,20 +13,26 @@
   --color-border: #dee2e6;
   --color-border-light: #e9ecef;
   
-  /* Brand Colors */
-  --color-primary: #6366f1;
-  --color-primary-hover: #4f46e5;
-  --color-primary-light: #818cf8;
+  /* Brand Colors - Rediseño con tonos suaves */
+  --color-primary: #06b6d4; /* Cian suave */
+  --color-primary-hover: #0891b2; /* Cian más oscuro */
+  --color-primary-light: #67e8f9; /* Cian muy claro */
   
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-error: #ef4444;
-  --color-info: #3b82f6;
+  --color-success: #a7f3d0; /* Verde pastel claro */
+  --color-success-dark: #6ee7b7; /* Verde pastel medio */
+  --color-warning: #fde68a; /* Amarillo pastel */
+  --color-error: #fca5a5; /* Rojo suave desaturado */
+  --color-error-dark: #f87171; /* Rojo suave medio */
+  --color-info: #93c5fd; /* Azul suave */
   
-  /* Gradients */
-  --gradient-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  --gradient-success: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  --gradient-warm: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  /* Acento morado (solo para detalles mínimos) */
+  --color-accent-purple: #c4b5fd; /* Morado pastel */
+  --color-accent-purple-light: #e9d5ff; /* Morado muy claro */
+  
+  /* Gradientes suaves */
+  --gradient-primary: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%); /* Cian suave */
+  --gradient-success: linear-gradient(135deg, #a7f3d0 0%, #6ee7b7 100%); /* Verde pastel */
+  --gradient-accent: linear-gradient(135deg, #c4b5fd 0%, #a78bfa 100%); /* Morado pastel (solo para detalles) */
   
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
