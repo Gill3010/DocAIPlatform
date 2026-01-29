@@ -42,8 +42,18 @@ export const Sidebar = () => {
     ];
 
     return (
-        <aside className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
-            <div className="sidebar-header">
+        <>
+            {/* Backdrop overlay - closes sidebar when clicked */}
+            {!sidebarCollapsed && (
+                <div 
+                    className="sidebar-backdrop"
+                    onClick={toggleSidebar}
+                    aria-label="Cerrar menú"
+                />
+            )}
+            
+            <aside className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
+                <div className="sidebar-header">
                 {!sidebarCollapsed && (
                     <h2 className="sidebar-logo">
                         <span className="logo-icon">✨</span>
@@ -70,7 +80,7 @@ export const Sidebar = () => {
                             key={item.path}
                             to={item.path}
                             className={`nav-item ${isActive ? 'active' : ''}`}
-                            title={sidebarCollapsed ? item.label : undefined}
+                            data-tooltip={item.label}
                         >
                             <Icon className="nav-icon" size={20} />
                             {!sidebarCollapsed && <span className="nav-label">{item.label}</span>}
@@ -129,6 +139,7 @@ export const Sidebar = () => {
                     )}
                 </div>
             )}
-        </aside>
+            </aside>
+        </>
     );
 };

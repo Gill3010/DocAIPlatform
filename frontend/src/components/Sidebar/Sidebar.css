@@ -1,3 +1,25 @@
+/* Backdrop overlay - Subtle on desktop, visible on mobile */
+.sidebar-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.2); /* Subtle on desktop */
+    z-index: calc(var(--z-fixed) - 1);
+    animation: fadeIn 0.2s ease-out;
+    cursor: pointer;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
 .sidebar {
     position: fixed;
     left: 0;
@@ -10,7 +32,7 @@
     flex-direction: column;
     transition: width var(--transition-base);
     z-index: var(--z-fixed);
-    overflow: hidden;
+    overflow: visible; /* Changed to visible to show tooltips */
 }
 
 .sidebar.collapsed {
@@ -105,7 +127,7 @@
     flex-direction: column;
     gap: var(--spacing-xs);
     overflow-y: auto;
-    overflow-x: hidden;
+    overflow-x: visible; /* Changed to visible to show tooltips */
 }
 
 .nav-item {
@@ -132,7 +154,40 @@
     color: white;
 }
 
-.nav-item.active::before {
+/* Tooltip for collapsed sidebar */
+.sidebar.collapsed .nav-item {
+    position: relative;
+}
+
+.sidebar.collapsed .nav-item::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    left: calc(100% + 15px);
+    top: 50%;
+    transform: translateY(-50%) scale(0.95);
+    background: var(--color-text-primary);
+    color: var(--color-surface);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-md);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: all var(--transition-fast);
+    z-index: 9999;
+    box-shadow: var(--shadow-lg);
+}
+
+.sidebar.collapsed .nav-item:hover::after {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(-50%) scale(1);
+}
+
+/* Keep the active indicator bar for non-collapsed state */
+.sidebar:not(.collapsed) .nav-item.active::before {
     content: '';
     position: absolute;
     left: 0;
@@ -314,6 +369,11 @@
 
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
+    /* More visible backdrop on mobile */
+    .sidebar-backdrop {
+        background: rgba(0, 0, 0, 0.5);
+    }
+
     .sidebar {
         transform: translateX(-100%);
         box-shadow: var(--shadow-xl);
@@ -328,17 +388,5 @@
     .sidebar:not(.collapsed) {
         transform: translateX(0);
         width: var(--sidebar-width);
-    }
-
-    /* Mobile backdrop */
-    .sidebar:not(.collapsed)::after {
-        content: '';
-        position: fixed;
-        top: 0;
-        left: var(--sidebar-width);
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.5);
-        z-index: -1;
     }
 }
