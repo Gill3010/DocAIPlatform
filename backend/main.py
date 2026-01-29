@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.app.core.config import settings
 from backend.app.routers import auth
 from backend.app.routers import convert
+from backend.app.routers import users
+from backend.app.routers import ai
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -28,6 +30,8 @@ app.add_middleware(
 
 app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
 app.include_router(convert.router, prefix=f"{settings.API_V1_STR}/convert", tags=["convert"])
+app.include_router(users.router, prefix=f"{settings.API_V1_STR}/users", tags=["users"])
+app.include_router(ai.router, prefix=f"{settings.API_V1_STR}/ai", tags=["ai"])
 
 @app.get("/")
 async def root():

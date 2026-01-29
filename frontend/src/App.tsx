@@ -4,6 +4,8 @@ import { Login } from './pages/Login/Login';
 import { DashboardLayout } from './pages/DashboardLayout';
 import { Dashboard } from './pages/Dashboard/Dashboard';
 import { Convert } from './pages/Convert/Convert';
+import { History } from './pages/History/History';
+import { FormatManuscript } from './pages/FormatManuscript/FormatManuscript';
 import './styles/global.css';
 
 function App() {
@@ -22,8 +24,8 @@ function App() {
           <Route index element={<Navigate to="/dashboard" />} />
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="convert" element={<Convert />} />
-          <Route path="history" element={<div style={{ padding: '2rem' }}>History page coming soon...</div>} />
-          <Route path="ai-assistant" element={<div style={{ padding: '2rem' }}>AI Assistant coming soon...</div>} />
+          <Route path="history" element={<History />} />
+          <Route path="format-manuscript" element={<FormatManuscript />} />
           <Route path="settings" element={<div style={{ padding: '2rem' }}>Settings page coming soon...</div>} />
         </Route>
       </Routes>

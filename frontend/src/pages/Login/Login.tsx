@@ -25,6 +25,23 @@ export const Login = () => {
                 const response = await apiService.login({ username: email, password });
                 setToken(response.access_token);
                 localStorage.setItem('token', response.access_token);
+                
+                // Fetch user data after login
+                try {
+                    const userData = await apiService.getUserStats();
+                    setUser({
+                        email: userData.user.email,
+                        full_name: userData.user.name,
+                        free_conversion_count: userData.credits.used,
+                        is_active: true,
+                        is_superuser: false,
+                        id: 0,
+                        created_at: new Date().toISOString()
+                    });
+                } catch (err) {
+                    console.error('Failed to fetch user data:', err);
+                }
+                
                 navigate('/dashboard');
             } else {
                 const user = await apiService.register({ email, password, full_name: fullName });
@@ -51,7 +68,7 @@ export const Login = () => {
                         DocAI Platform
                     </h1>
                     <p className="login-subtitle">
-                        {isLogin ? 'Welcome back!' : 'Create your account'}
+                        {isLogin ? '¡Bienvenido de nuevo!' : 'Crea tu cuenta'}
                     </p>
                 </div>
 
@@ -78,13 +95,13 @@ export const Login = () => {
                                 type="text"
                                 value={fullName}
                                 onChange={(e) => setFullName(e.target.value)}
-                                placeholder="John Doe"
+                                placeholder="Juan Pérez"
                             />
                         </div>
                     )}
 
                     <div className="form-group">
-                        <label htmlFor="password">Password</label>
+                        <label htmlFor="password">Contraseña</label>
                         <input
                             id="password"
                             type="password"
@@ -96,19 +113,19 @@ export const Login = () => {
                     </div>
 
                     <button type="submit" className="btn-primary" disabled={loading}>
-                        {loading ? 'Please wait...' : isLogin ? 'Sign In' : 'Sign Up'}
+                        {loading ? 'Por favor espera...' : isLogin ? 'Iniciar Sesión' : 'Registrarse'}
                     </button>
                 </form>
 
                 <div className="login-footer">
                     <p>
-                        {isLogin ? "Don't have an account? " : 'Already have an account? '}
+                        {isLogin ? "¿No tienes una cuenta? " : '¿Ya tienes una cuenta? '}
                         <button
                             type="button"
                             className="link-button"
                             onClick={() => setIsLogin(!isLogin)}
                         >
-                            {isLogin ? 'Sign Up' : 'Sign In'}
+                            {isLogin ? 'Regístrate' : 'Inicia Sesión'}
                         </button>
                     </p>
                 </div>

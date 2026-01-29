@@ -34,6 +34,14 @@ Este documento sirve como guía maestra para retomar el desarrollo del proyecto 
 - [x] Sistema de créditos funcionando (10 conversiones gratis).
 - [x] Frontend conectado con backend real.
 
+### ✅ Fase 5: Funcionalidades SaaS Avanzadas (100%)
+- [x] Página de Historial con filtros y estadísticas.
+- [x] Descarga de archivos convertidos desde historial.
+- [x] AI Assistant Chat con interfaz profesional.
+- [x] Router de AI con integración OpenAI GPT-4.
+- [x] Endpoint de estadísticas reales del usuario.
+- [x] Dashboard actualizado con métricas de la BD.
+
 ---
 
 ## 🚀 3. Tareas Pendientes (Roadmap)
@@ -43,10 +51,10 @@ Este documento sirve como guía maestra para retomar el desarrollo del proyecto 
 2.  **Integración S3:** Configurar AWS S3 para almacenamiento externo (opcional para más adelante).
 3.  ~~**Primer Converter:** Implementar lógica para PDF -> Word o PNG -> PDF.~~
 
-### Prioridad Media: Funcionalidades SaaS
-4.  **Historial:** Implementar página `/history` consumiendo datos de la DB.
-5.  **AI Assistant Chat:** UI de chat interactiva conectada a OpenAI.
-6.  **Sistema de Créditos:** Restar créditos reales al completar una conversión.
+### ~~Prioridad Media: Funcionalidades SaaS~~ ✅ COMPLETADO
+4.  ~~**Historial:** Implementar página `/history` consumiendo datos de la DB.~~
+5.  ~~**AI Assistant Chat:** UI de chat interactiva conectada a OpenAI.~~
+6.  ~~**Sistema de Créditos:** Restar créditos reales al completar una conversión.~~
 
 ### Prioridad Baja: Configuración y Pagos
 7.  **Ajustes de Perfil:** Cambio de contraseña y datos personales.

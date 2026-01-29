@@ -107,6 +107,21 @@ class ApiService {
     async getSupportedFormats(): Promise<any> {
         return this.request<any>('/convert/supported-formats');
     }
+
+    async getUserStats(): Promise<any> {
+        return this.request<any>('/users/me/stats');
+    }
+
+    async sendChatMessage(message: string): Promise<any> {
+        return this.request<any>('/ai/chat', {
+            method: 'POST',
+            body: JSON.stringify({ message }),
+        });
+    }
+
+    async getAICredits(): Promise<any> {
+        return this.request<any>('/ai/credits');
+    }
 }
 
 export const apiService = new ApiService();

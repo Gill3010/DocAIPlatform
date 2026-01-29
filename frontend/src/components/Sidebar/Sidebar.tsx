@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { LayoutDashboard, RefreshCw, FolderClock, Bot, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LayoutDashboard, RefreshCw, FileEdit, FolderClock, Bot, Settings, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import './Sidebar.css';
 
@@ -8,11 +8,11 @@ export const Sidebar = () => {
     const { sidebarCollapsed, toggleSidebar, user } = useAppStore();
 
     const menuItems = [
-        { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-        { path: '/convert', icon: RefreshCw, label: 'Convert Files' },
-        { path: '/history', icon: FolderClock, label: 'History' },
-        { path: '/ai-assistant', icon: Bot, label: 'AI Assistant' },
-        { path: '/settings', icon: Settings, label: 'Settings' },
+        { path: '/dashboard', icon: LayoutDashboard, label: 'Panel Principal' },
+        { path: '/convert', icon: RefreshCw, label: 'Convertir Archivos' },
+        { path: '/format-manuscript', icon: FileEdit, label: 'Formatear Manuscrito' },
+        { path: '/history', icon: FolderClock, label: 'Historial' },
+        { path: '/settings', icon: Settings, label: 'Configuración' },
     ];
 
     return (
@@ -27,8 +27,8 @@ export const Sidebar = () => {
                 <button
                     className="sidebar-toggle"
                     onClick={toggleSidebar}
-                    aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                    title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                    aria-label={sidebarCollapsed ? 'Expandir menú' : 'Colapsar menú'}
+                    title={sidebarCollapsed ? 'Expandir menú' : 'Colapsar menú'}
                 >
                     {sidebarCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
                 </button>
@@ -61,10 +61,10 @@ export const Sidebar = () => {
                         </div>
                         {!sidebarCollapsed && (
                             <div className="user-details">
-                                <p className="user-name">{user.full_name || 'User'}</p>
+                                <p className="user-name">{user.full_name || 'Usuario'}</p>
                                 <p className="user-email">{user.email}</p>
                                 <p className="user-credits">
-                                    {3 - user.free_conversion_count} free conversions left
+                                    {Math.max(0, 10 - user.free_conversion_count)} créditos disponibles
                                 </p>
                             </div>
                         )}

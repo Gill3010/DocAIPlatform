@@ -13,17 +13,53 @@ interface FileWithProgress {
     creditsRemaining?: number;
 }
 
-const SUPPORTED_FORMATS = [
-    { id: 'pdf', name: 'PDF Document', icon: '📄' },
-    { id: 'docx', name: 'Word Document', icon: '📝' },
-    { id: 'png', name: 'PNG Image', icon: '🖼️' },
-    { id: 'xml', name: 'XML Data', icon: '📁' },
-];
+// Conversiones soportadas por el backend (sistema modular)
+const CONVERSION_MAP: Record<string, Array<{ id: string; name: string; icon: string }>> = {
+    'png': [
+        { id: 'pdf', name: 'Documento PDF', icon: '📄' },
+        { id: 'dxf', name: 'Archivo DXF (CAD)', icon: '📐' }
+    ],
+    'jpg': [
+        { id: 'pdf', name: 'Documento PDF', icon: '📄' },
+        { id: 'dxf', name: 'Archivo DXF (CAD)', icon: '📐' }
+    ],
+    'jpeg': [
+        { id: 'pdf', name: 'Documento PDF', icon: '📄' },
+        { id: 'dxf', name: 'Archivo DXF (CAD)', icon: '📐' }
+    ],
+    'pdf': [
+        { id: 'docx', name: 'Documento Word', icon: '📝' },
+        { id: 'png', name: 'Imagen PNG', icon: '🖼️' },
+        { id: 'txt', name: 'Texto Plano', icon: '📋' }
+    ],
+    'txt': [
+        { id: 'docx', name: 'Documento Word', icon: '📄' }
+    ],
+    'docx': [
+        { id: 'pdf', name: 'Documento PDF', icon: '📄' },
+        { id: 'txt', name: 'Texto Plano', icon: '📋' },
+        { id: 'xml', name: 'XML JATS (Artículo Científico)', icon: '🎓' }
+    ],
+    'xml': [
+        { id: 'html', name: 'Página HTML', icon: '🌐' },
+        { id: 'docx', name: 'Documento Word', icon: '📝' }
+    ],
+    'html': [
+        { id: 'xml', name: 'Archivo XML', icon: '📋' }
+    ],
+    'htm': [
+        { id: 'xml', name: 'Archivo XML', icon: '📋' }
+    ],
+    'dxf': [
+        { id: 'png', name: 'Imagen PNG', icon: '🖼️' }
+    ]
+};
 
 export const Convert = () => {
     const [dragActive, setDragActive] = useState(false);
     const [selectedFile, setSelectedFile] = useState<FileWithProgress | null>(null);
     const [targetFormat, setTargetFormat] = useState('pdf');
+    const [availableFormats, setAvailableFormats] = useState<Array<{ id: string; name: string; icon: string }>>([]);
 
     const handleDrag = useCallback((e: React.DragEvent) => {
         e.preventDefault();
@@ -42,11 +78,17 @@ export const Convert = () => {
 
         if (e.dataTransfer.files && e.dataTransfer.files[0]) {
             const file = e.dataTransfer.files[0];
+            const ext = file.name.split('.').pop()?.toLowerCase() || '';
+            const formats = CONVERSION_MAP[ext] || [];
+            const defaultTarget = formats.length > 0 ? formats[0].id : 'pdf';
+            
+            setAvailableFormats(formats);
+            setTargetFormat(defaultTarget);
             setSelectedFile({
                 file,
                 progress: 0,
                 status: 'idle',
-                targetFormat: 'pdf'
+                targetFormat: defaultTarget
             });
         }
     }, []);
@@ -54,11 +96,22 @@ export const Convert = () => {
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
+            const ext = file.name.split('.').pop()?.toLowerCase() || '';
+            const formats = CONVERSION_MAP[ext] || [];
+            const defaultTarget = formats.length > 0 ? formats[0].id : 'pdf';
+            
+            if (formats.length === 0) {
+                alert(`Formato ${ext.toUpperCase()} no soportado. Formatos válidos: PNG, JPG, JPEG, PDF, TXT, DOCX, XML, HTML, DXF`);
+                return;
+            }
+            
+            setAvailableFormats(formats);
+            setTargetFormat(defaultTarget);
             setSelectedFile({
                 file,
                 progress: 0,
                 status: 'idle',
-                targetFormat: 'pdf'
+                targetFormat: defaultTarget
             });
         }
     };
@@ -126,8 +179,8 @@ export const Convert = () => {
     return (
         <div className="convert-page">
             <div className="convert-header">
-                <h2>Document Converter</h2>
-                <p>Upload your file and choose the output format</p>
+                <h2>Convertidor de Documentos</h2>
+                <p>Sube tu archivo y elige el formato de salida</p>
             </div>
 
             <div className="convert-container">
@@ -139,21 +192,29 @@ export const Convert = () => {
                         onDragOver={handleDrag}
                         onDrop={handleDrop}
                     >
+                        <div className="upload-icon-wrapper">
+                            <Upload size={64} className="upload-icon" />
+                        </div>
+                            <div className="drop-text">
+                                <h3>Haz clic o arrastra el archivo aquí</h3>
+                                <p>PNG, JPG, PDF, DOCX, TXT, XML, HTML, DXF hasta 10MB</p>
+                            </div>
+                        <div className="supported-formats">
+                            <span className="format-badge">PNG/JPG</span>
+                            <span className="format-badge">PDF</span>
+                            <span className="format-badge">DOCX</span>
+                            <span className="format-badge">TXT</span>
+                            <span className="format-badge">XML</span>
+                            <span className="format-badge">HTML</span>
+                        </div>
                         <input
                             type="file"
                             id="file-upload"
                             className="file-input"
                             onChange={handleFileChange}
                         />
-                        <label htmlFor="file-upload" className="drop-label">
-                            <div className="upload-icon-wrapper">
-                                <Upload size={40} className="upload-icon" />
-                            </div>
-                            <div className="drop-text">
-                                <h3>Click or drag file back here</h3>
-                                <p>PDF, Word, PNG, XML up to 10MB</p>
-                            </div>
-                            <button className="select-btn">Select File</button>
+                        <label htmlFor="file-upload" className="select-btn">
+                            Seleccionar Archivo
                         </label>
                     </div>
                 ) : (
@@ -177,22 +238,26 @@ export const Convert = () => {
                             {selectedFile.status === 'idle' ? (
                                 <div className="conversion-settings">
                                     <div className="format-selector">
-                                        <p className="label">Convert to:</p>
-                                        <div className="format-grid">
-                                            {SUPPORTED_FORMATS.map(f => (
-                                                <button
-                                                    key={f.id}
-                                                    className={`format-btn ${targetFormat === f.id ? 'active' : ''}`}
-                                                    onClick={() => setTargetFormat(f.id)}
-                                                >
-                                                    <span className="format-icon">{f.icon}</span>
-                                                    <span className="format-name">{f.name}</span>
-                                                </button>
-                                            ))}
-                                        </div>
+                                        <p className="label">Convertir a:</p>
+                                        {availableFormats.length > 0 ? (
+                                            <div className="format-grid">
+                                                {availableFormats.map(f => (
+                                                    <button
+                                                        key={f.id}
+                                                        className={`format-btn ${targetFormat === f.id ? 'active' : ''}`}
+                                                        onClick={() => setTargetFormat(f.id)}
+                                                    >
+                                                        <span className="format-icon">{f.icon}</span>
+                                                        <span className="format-name">{f.name}</span>
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="no-formats-warning">⚠️ Este formato de archivo no tiene conversiones disponibles</p>
+                                        )}
                                     </div>
                                     <button className="convert-btn" onClick={startConversion}>
-                                        Convert Now
+                                        Convertir Ahora
                                         <ArrowRight size={20} />
                                     </button>
                                 </div>
@@ -200,9 +265,9 @@ export const Convert = () => {
                                 <div className="progress-section">
                                     <div className="progress-status">
                                         <span>
-                                            {selectedFile.status === 'uploading' ? 'Uploading...' :
-                                                selectedFile.status === 'converting' ? 'Processing...' :
-                                                    'Completed!'}
+                                            {selectedFile.status === 'uploading' ? 'Subiendo...' :
+                                                selectedFile.status === 'converting' ? 'Procesando...' :
+                                                    '¡Completado!'}
                                         </span>
                                         <span>{selectedFile.progress}%</span>
                                     </div>
@@ -217,11 +282,11 @@ export const Convert = () => {
                                             <div className="success-msg">
                                                 <div>
                                                     <CheckCircle2 size={24} className="text-success" />
-                                                    <span>File converted successfully!</span>
+                                                    <span>¡Archivo convertido exitosamente!</span>
                                                 </div>
                                                 {selectedFile.creditsRemaining !== undefined && (
                                                     <p className="credits-info">
-                                                        {selectedFile.creditsRemaining} free conversions remaining
+                                                        {selectedFile.creditsRemaining} conversiones gratuitas restantes
                                                     </p>
                                                 )}
                                             </div>
@@ -241,16 +306,16 @@ export const Convert = () => {
                                                                 window.URL.revokeObjectURL(url);
                                                                 document.body.removeChild(a);
                                                             } catch (error) {
-                                                                alert('Download failed. Please try again.');
+                                                                alert('Descarga fallida. Por favor intenta de nuevo.');
                                                             }
                                                         }
                                                     }}
                                                 >
-                                                    Download Result
+                                                    Descargar Resultado
                                                 </button>
                                                 <button className="new-btn" onClick={reset}>
                                                     <RefreshCw size={18} />
-                                                    New Conversion
+                                                    Nueva Conversión
                                                 </button>
                                             </div>
                                         </div>
@@ -260,12 +325,12 @@ export const Convert = () => {
                                             <div className="error-msg">
                                                 <div>
                                                     <AlertCircle size={24} className="text-error" />
-                                                    <span>{selectedFile.errorMessage || 'Conversion failed'}</span>
+                                                    <span>{selectedFile.errorMessage || 'Conversión fallida'}</span>
                                                 </div>
                                             </div>
                                             <button className="new-btn" onClick={reset}>
                                                 <RefreshCw size={18} />
-                                                Try Again
+                                                Intentar de Nuevo
                                             </button>
                                         </div>
                                     )}
@@ -277,19 +342,19 @@ export const Convert = () => {
             </div>
 
             <section className="conversion-info">
-                <h3>How it works</h3>
+                <h3>Cómo funciona</h3>
                 <div className="info-steps">
                     <div className="info-step">
                         <span className="step-num">1</span>
-                        <p>Upload your document safely to our cloud storage</p>
+                        <p>Sube tu documento de forma segura a nuestro almacenamiento en la nube</p>
                     </div>
                     <div className="info-step">
                         <span className="step-num">2</span>
-                        <p>Select target format and start processing</p>
+                        <p>Selecciona el formato objetivo e inicia el procesamiento</p>
                     </div>
                     <div className="info-step">
                         <span className="step-num">3</span>
-                        <p>Download your converted file and save it in history</p>
+                        <p>Descarga tu archivo convertido y guárdalo en el historial</p>
                     </div>
                 </div>
             </section>

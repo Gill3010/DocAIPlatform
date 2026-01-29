@@ -85,6 +85,8 @@
     padding: var(--spacing-xl);
     overflow-y: auto;
     background: var(--color-bg-primary);
+    width: 100%;
+    max-width: none !important;
 }
 
 @media (max-width: 768px) {
