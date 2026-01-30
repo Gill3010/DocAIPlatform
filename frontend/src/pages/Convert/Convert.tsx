@@ -38,7 +38,7 @@ const CONVERSION_MAP: Record<string, Array<{ id: string; name: string; icon: any
     'docx': [
         { id: 'pdf', name: 'Documento PDF', icon: FileText },
         { id: 'txt', name: 'Texto Plano', icon: FileText },
-        { id: 'xml', name: 'XML JATS (Artículo Científico)', icon: GraduationCap }
+        { id: 'xml', name: 'XML', icon: GraduationCap }
     ],
     'xml': [
         { id: 'html', name: 'Página HTML', icon: Globe },

@@ -6,6 +6,8 @@ import { Dashboard } from './pages/Dashboard/Dashboard';
 import { Convert } from './pages/Convert/Convert';
 import { History } from './pages/History/History';
 import { FormatManuscript } from './pages/FormatManuscript/FormatManuscript';
+import { TerminosDeUso } from './pages/TerminosDeUso/TerminosDeUso';
+import { PoliticaPrivacidad } from './pages/PoliticaPrivacidad/PoliticaPrivacidad';
 import './styles/global.css';
 
 function App() {
@@ -26,6 +28,8 @@ function App() {
           <Route path="convert" element={<Convert />} />
           <Route path="history" element={<History />} />
           <Route path="format-manuscript" element={<FormatManuscript />} />
+          <Route path="terminos-de-uso" element={<TerminosDeUso />} />
+          <Route path="politica-privacidad" element={<PoliticaPrivacidad />} />
           <Route path="settings" element={<div style={{ padding: '2rem' }}>Settings page coming soon...</div>} />
         </Route>
       </Routes>

@@ -14,15 +14,10 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
-# CORS Configuration
-origins = [
-    "http://localhost:5173",  # Vite Frontend
-    "http://127.0.0.1:5173",
-]
-
+# CORS: permite localhost y acceso por IP pública (ej. 18.119.101.31:5173)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1|[\d.]+)(:\d+)?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

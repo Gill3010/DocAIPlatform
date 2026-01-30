@@ -1,6 +1,7 @@
 import type { LoginCredentials, RegisterData, AuthToken, User } from '../types';
 
-const API_URL = 'http://localhost:8000/api/v1';
+// Usa el mismo host que la página (funciona con localhost o IP pública)
+const API_URL = `${window.location.protocol}//${window.location.hostname}:8000/api/v1`;
 
 class ApiService {
     private async request<T>(

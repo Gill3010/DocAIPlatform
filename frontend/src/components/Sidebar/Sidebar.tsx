@@ -81,6 +81,7 @@ export const Sidebar = () => {
                             to={item.path}
                             className={`nav-item ${isActive ? 'active' : ''}`}
                             data-tooltip={item.label}
+                            title={sidebarCollapsed ? item.label : undefined}
                         >
                             <Icon className="nav-icon" size={20} />
                             {!sidebarCollapsed && <span className="nav-label">{item.label}</span>}

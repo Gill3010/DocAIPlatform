@@ -4,6 +4,7 @@ import { Menu } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar/Sidebar';
 import { ThemeToggle } from '../components/ThemeToggle/ThemeToggle';
 import { AIAssistantFAB } from '../components/AIAssistantFAB/AIAssistantFAB';
+import { Footer } from '../components/Footer/Footer';
 import { useAppStore } from '../stores/appStore';
 import { apiService } from '../services/api';
 import './DashboardLayout.css';
@@ -57,6 +58,7 @@ export const DashboardLayout = () => {
                 <div className="content-area">
                     <Outlet />
                 </div>
+                <Footer />
             </main>
             <AIAssistantFAB />
         </div>

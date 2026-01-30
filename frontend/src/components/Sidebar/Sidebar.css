@@ -127,7 +127,7 @@
     flex-direction: column;
     gap: var(--spacing-xs);
     overflow-y: auto;
-    overflow-x: visible; /* Changed to visible to show tooltips */
+    overflow-x: hidden;
 }
 
 .nav-item {
@@ -161,9 +161,8 @@
 
 .sidebar.collapsed .nav-item::after {
     content: attr(data-tooltip);
-    position: absolute;
-    left: calc(100% + 15px);
-    top: 50%;
+    position: fixed;
+    left: calc(var(--sidebar-collapsed-width) + 15px);
     transform: translateY(-50%) scale(0.95);
     background: var(--color-text-primary);
     color: var(--color-surface);
