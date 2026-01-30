@@ -91,6 +91,13 @@
     color: var(--color-text-tertiary);
 }
 
+.drop-zone-hint {
+    margin-top: var(--spacing-sm);
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-primary);
+}
+
 .supported-formats {
     display: flex;
     gap: var(--spacing-sm);
@@ -296,21 +303,48 @@
 .success-msg {
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-sm);
-    color: var(--color-success);
-    font-weight: 600;
+    gap: var(--spacing-md);
+    padding: var(--spacing-lg);
+    background: rgba(167, 243, 208, 0.25);
+    border: 1px solid rgba(110, 231, 183, 0.6);
+    border-radius: var(--radius-lg);
 }
 
-.success-msg > div:first-child {
+.success-msg__row {
     display: flex;
     align-items: center;
-    gap: var(--spacing-sm);
+    gap: var(--spacing-md);
+}
+
+.success-msg__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    border-radius: 50%;
+    background: var(--gradient-success);
+    color: #065f46;
+    flex-shrink: 0;
+}
+
+.success-msg__icon svg {
+    color: #065f46;
+    stroke-width: 2.5;
+}
+
+.success-msg__text {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--color-text-primary);
 }
 
 .credits-info {
     font-size: var(--font-size-sm);
     color: var(--color-text-secondary);
     font-weight: 400;
+    margin: 0;
 }
 
 .error-msg {
@@ -338,40 +372,31 @@
 .btn-group {
     display: flex;
     gap: var(--spacing-md);
+    flex-wrap: wrap;
 }
 
 .download-btn {
     flex: 1;
+    min-width: 200px;
     padding: var(--spacing-lg) var(--spacing-xl);
-    background: var(--color-success);
+    background: var(--gradient-primary);
     color: white;
     border: none;
-    border-radius: var(--radius-md);
-    font-size: var(--font-size-md);
+    border-radius: var(--radius-lg);
+    font-size: var(--font-size-base);
     font-weight: 600;
     cursor: pointer;
     transition: all var(--transition-fast);
-    box-shadow: var(--shadow-sm);
-}
-
-.download-btn {
-    flex: 1;
-    padding: var(--spacing-lg) var(--spacing-xl);
-    background: var(--color-success-dark);
-    color: #065f46;
-    border: none;
-    border-radius: var(--radius-md);
-    font-size: var(--font-size-md);
-    font-weight: 600;
-    cursor: pointer;
-    transition: all var(--transition-fast);
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-md);
 }
 
 .download-btn:hover {
-    background: var(--color-success);
     transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
+    box-shadow: var(--shadow-lg);
+}
+
+.download-btn:active {
+    transform: translateY(0);
 }
 
 .convert-btn {

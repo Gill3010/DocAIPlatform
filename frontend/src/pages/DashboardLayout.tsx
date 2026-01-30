@@ -1,16 +1,42 @@
-import { useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
+import { useEffect, useState, useMemo } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar/Sidebar';
 import { ThemeToggle } from '../components/ThemeToggle/ThemeToggle';
+import { ConversionSearch } from '../components/ConversionSearch/ConversionSearch';
 import { AIAssistantFAB } from '../components/AIAssistantFAB/AIAssistantFAB';
 import { Footer } from '../components/Footer/Footer';
 import { useAppStore } from '../stores/appStore';
 import { apiService } from '../services/api';
+import { DashboardSearchContext } from '../contexts/DashboardSearchContext';
+import { getDashboardConversions } from '../constants/conversions';
+import { filterConversionsByQuery } from '../utils/searchConversions';
 import './DashboardLayout.css';
+
+function getPageTitle(pathname: string): string {
+    const titles: Record<string, string> = {
+        '/convert': 'Convertir',
+        '/history': 'Historial',
+        '/format-manuscript': 'Formatear manuscrito',
+        '/terminos-de-uso': 'Términos de uso',
+        '/politica-privacidad': 'Política de privacidad',
+        '/settings': 'Ajustes'
+    };
+    return titles[pathname] ?? 'Inicio';
+}
 
 export const DashboardLayout = () => {
     const { sidebarCollapsed, toggleSidebar, user, token, setUser } = useAppStore();
+    const location = useLocation();
+    const pathname = location.pathname;
+    const isDashboard = pathname === '/dashboard' || pathname === '/';
+
+    const [searchQuery, setSearchQuery] = useState('');
+    const conversionTypes = useMemo(() => getDashboardConversions(), []);
+    const filteredConversions = useMemo(
+        () => filterConversionsByQuery(conversionTypes, searchQuery),
+        [conversionTypes, searchQuery]
+    );
 
     useEffect(() => {
         // If we have a token but no user data, fetch the user info
@@ -49,15 +75,27 @@ export const DashboardLayout = () => {
                         >
                             <Menu size={24} />
                         </button>
-                        <h1 className="page-title">Bienvenido, {user?.full_name || 'Usuario'}!</h1>
+                        {isDashboard ? (
+                            <div className="header-search">
+                                <ConversionSearch
+                                    query={searchQuery}
+                                    onQueryChange={setSearchQuery}
+                                    filteredConversions={filteredConversions}
+                                />
+                            </div>
+                        ) : (
+                            <h1 className="page-title">{getPageTitle(pathname)}</h1>
+                        )}
                     </div>
                     <div className="header-right">
                         <ThemeToggle />
                     </div>
                 </header>
-                <div className="content-area">
-                    <Outlet />
-                </div>
+                <DashboardSearchContext.Provider value={{ query: searchQuery, setQuery: setSearchQuery }}>
+                    <div className="content-area">
+                        <Outlet />
+                    </div>
+                </DashboardSearchContext.Provider>
                 <Footer />
             </main>
             <AIAssistantFAB />

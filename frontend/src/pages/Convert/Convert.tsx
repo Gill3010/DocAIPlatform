@@ -1,7 +1,17 @@
 import { useState, useCallback } from 'react';
-import { Upload, FileType, ArrowRight, CheckCircle2, AlertCircle, RefreshCw, X, FileText, Image, File, Globe, Ruler, GraduationCap } from 'lucide-react';
+import { useSearchParams } from 'react-router-dom';
+import { Upload, FileType, ArrowRight, CheckCircle2, AlertCircle, RefreshCw, X } from 'lucide-react';
 import { apiService } from '../../services/api';
+import { CONVERSION_MAP, SOURCE_LABELS, TARGET_LABELS } from '../../constants/conversions';
 import './Convert.css';
+
+/** Extensiones que cuentan como "imagen" cuando la URL tiene from=png (PNG/JPG/JPEG). */
+const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg'];
+
+function extensionMatchesUrlFrom(ext: string, urlFrom: string): boolean {
+    if (urlFrom === 'png') return IMAGE_EXTENSIONS.includes(ext);
+    return ext === urlFrom;
+}
 
 interface FileWithProgress {
     file: File;
@@ -13,53 +23,22 @@ interface FileWithProgress {
     creditsRemaining?: number;
 }
 
-// Conversiones soportadas por el backend (sistema modular)
-const CONVERSION_MAP: Record<string, Array<{ id: string; name: string; icon: any }>> = {
-    'png': [
-        { id: 'pdf', name: 'Documento PDF', icon: FileText },
-        { id: 'dxf', name: 'Archivo DXF (CAD)', icon: Ruler }
-    ],
-    'jpg': [
-        { id: 'pdf', name: 'Documento PDF', icon: FileText },
-        { id: 'dxf', name: 'Archivo DXF (CAD)', icon: Ruler }
-    ],
-    'jpeg': [
-        { id: 'pdf', name: 'Documento PDF', icon: FileText },
-        { id: 'dxf', name: 'Archivo DXF (CAD)', icon: Ruler }
-    ],
-    'pdf': [
-        { id: 'docx', name: 'Documento Word', icon: File },
-        { id: 'png', name: 'Imagen PNG', icon: Image },
-        { id: 'txt', name: 'Texto Plano', icon: FileText }
-    ],
-    'txt': [
-        { id: 'docx', name: 'Documento Word', icon: File }
-    ],
-    'docx': [
-        { id: 'pdf', name: 'Documento PDF', icon: FileText },
-        { id: 'txt', name: 'Texto Plano', icon: FileText },
-        { id: 'xml', name: 'XML', icon: GraduationCap }
-    ],
-    'xml': [
-        { id: 'html', name: 'Página HTML', icon: Globe },
-        { id: 'docx', name: 'Documento Word', icon: File }
-    ],
-    'html': [
-        { id: 'xml', name: 'Archivo XML', icon: FileText }
-    ],
-    'htm': [
-        { id: 'xml', name: 'Archivo XML', icon: FileText }
-    ],
-    'dxf': [
-        { id: 'png', name: 'Imagen PNG', icon: Image }
-    ]
-};
-
 export const Convert = () => {
+    const [searchParams] = useSearchParams();
+    const urlFrom = searchParams.get('from') ?? '';
+    const urlTo = searchParams.get('to') ?? '';
+
     const [dragActive, setDragActive] = useState(false);
     const [selectedFile, setSelectedFile] = useState<FileWithProgress | null>(null);
     const [targetFormat, setTargetFormat] = useState('pdf');
     const [availableFormats, setAvailableFormats] = useState<Array<{ id: string; name: string; icon: string }>>([]);
+
+    const preferredTargetForFile = useCallback((ext: string, formats: Array<{ id: string; name: string; icon: string }>): string => {
+        if (!urlFrom || !urlTo || formats.length === 0) return formats[0]?.id ?? 'pdf';
+        if (!extensionMatchesUrlFrom(ext, urlFrom)) return formats[0]?.id ?? 'pdf';
+        const hasTarget = formats.some((f) => f.id === urlTo);
+        return hasTarget ? urlTo : (formats[0]?.id ?? 'pdf');
+    }, [urlFrom, urlTo]);
 
     const handleDrag = useCallback((e: React.DragEvent) => {
         e.preventDefault();
@@ -80,7 +59,7 @@ export const Convert = () => {
             const file = e.dataTransfer.files[0];
             const ext = file.name.split('.').pop()?.toLowerCase() || '';
             const formats = CONVERSION_MAP[ext] || [];
-            const defaultTarget = formats.length > 0 ? formats[0].id : 'pdf';
+            const defaultTarget = preferredTargetForFile(ext, formats);
             
             setAvailableFormats(formats);
             setTargetFormat(defaultTarget);
@@ -91,14 +70,14 @@ export const Convert = () => {
                 targetFormat: defaultTarget
             });
         }
-    }, []);
+    }, [preferredTargetForFile]);
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             const ext = file.name.split('.').pop()?.toLowerCase() || '';
             const formats = CONVERSION_MAP[ext] || [];
-            const defaultTarget = formats.length > 0 ? formats[0].id : 'pdf';
+            const defaultTarget = preferredTargetForFile(ext, formats);
             
             if (formats.length === 0) {
                 alert(`Formato ${ext.toUpperCase()} no soportado. Formatos válidos: PNG, JPG, JPEG, PDF, TXT, DOCX, XML, HTML, DXF`);
@@ -176,6 +155,10 @@ export const Convert = () => {
         setTargetFormat('pdf');
     };
 
+    const fromLabel = urlFrom ? (SOURCE_LABELS[urlFrom] ?? urlFrom.toUpperCase()) : '';
+    const toLabel = urlTo ? (TARGET_LABELS[urlTo] ?? urlTo.toUpperCase()) : '';
+    const showHint = Boolean(fromLabel && toLabel);
+
     return (
         <div className="convert-page">
             <div className="convert-header">
@@ -198,6 +181,11 @@ export const Convert = () => {
                             <div className="drop-text">
                                 <h3>Haz clic o arrastra el archivo aquí</h3>
                                 <p>PNG, JPG, PDF, DOCX, TXT, XML, HTML, DXF hasta 10MB</p>
+                                {showHint && (
+                                    <p className="drop-zone-hint">
+                                        Convierte tu archivo {fromLabel} a {toLabel}
+                                    </p>
+                                )}
                             </div>
                         <div className="supported-formats">
                             <span className="format-badge">PNG/JPG</span>
@@ -285,9 +273,11 @@ export const Convert = () => {
                                     {selectedFile.status === 'completed' && (
                                         <div className="result-actions">
                                             <div className="success-msg">
-                                                <div>
-                                                    <CheckCircle2 size={24} className="text-success" />
-                                                    <span>¡Archivo convertido exitosamente!</span>
+                                                <div className="success-msg__row">
+                                                    <span className="success-msg__icon" aria-hidden>
+                                                        <CheckCircle2 size={24} />
+                                                    </span>
+                                                    <span className="success-msg__text">¡Archivo convertido exitosamente!</span>
                                                 </div>
                                                 {selectedFile.creditsRemaining !== undefined && (
                                                     <p className="credits-info">
