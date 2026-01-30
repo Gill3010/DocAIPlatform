@@ -13,8 +13,8 @@ import './styles/global.css';
 function App() {
   const { token, theme } = useAppStore();
 
-  // Apply theme on mount
-  if (!document.documentElement.getAttribute('data-theme')) {
+  // Sync theme to document (mount and when theme changes from SettingsMenu)
+  if (typeof document !== 'undefined') {
     document.documentElement.setAttribute('data-theme', theme);
   }
 

@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, RefreshCw, FileEdit, FolderClock, Bot, Settings, ChevronLeft, ChevronRight, User as UserIcon, LogOut, ChevronUp } from 'lucide-react';
+import { LayoutDashboard, RefreshCw, FileEdit, FolderClock, Bot, ChevronLeft, ChevronRight, User as UserIcon, LogOut, ChevronUp } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { useState, useRef, useEffect } from 'react';
 import './Sidebar.css';
@@ -38,7 +38,6 @@ export const Sidebar = () => {
         { path: '/convert', icon: RefreshCw, label: 'Convertir Archivos' },
         { path: '/format-manuscript', icon: FileEdit, label: 'Formatear Manuscrito' },
         { path: '/history', icon: FolderClock, label: 'Historial' },
-        { path: '/settings', icon: Settings, label: 'Configuración' },
     ];
 
     return (

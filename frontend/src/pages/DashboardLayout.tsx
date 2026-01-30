@@ -2,7 +2,8 @@ import { useEffect, useState, useMemo } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
 import { Menu } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar/Sidebar';
-import { ThemeToggle } from '../components/ThemeToggle/ThemeToggle';
+import { SettingsMenu } from '../components/SettingsMenu/SettingsMenu';
+import { MoreMenu } from '../components/MoreMenu/MoreMenu';
 import { ConversionSearch } from '../components/ConversionSearch/ConversionSearch';
 import { AIAssistantFAB } from '../components/AIAssistantFAB/AIAssistantFAB';
 import { Footer } from '../components/Footer/Footer';
@@ -32,6 +33,7 @@ export const DashboardLayout = () => {
     const isDashboard = pathname === '/dashboard' || pathname === '/';
 
     const [searchQuery, setSearchQuery] = useState('');
+    const [openHeaderMenu, setOpenHeaderMenu] = useState<'settings' | 'more' | null>(null);
     const conversionTypes = useMemo(() => getDashboardConversions(), []);
     const filteredConversions = useMemo(
         () => filterConversionsByQuery(conversionTypes, searchQuery),
@@ -88,15 +90,26 @@ export const DashboardLayout = () => {
                         )}
                     </div>
                     <div className="header-right">
-                        <ThemeToggle />
+                        <SettingsMenu
+                            isOpen={openHeaderMenu === 'settings'}
+                            onToggle={() => setOpenHeaderMenu((v) => (v === 'settings' ? null : 'settings'))}
+                            onClose={() => setOpenHeaderMenu(null)}
+                        />
+                        <MoreMenu
+                            isOpen={openHeaderMenu === 'more'}
+                            onToggle={() => setOpenHeaderMenu((v) => (v === 'more' ? null : 'more'))}
+                            onClose={() => setOpenHeaderMenu(null)}
+                        />
                     </div>
                 </header>
-                <DashboardSearchContext.Provider value={{ query: searchQuery, setQuery: setSearchQuery }}>
-                    <div className="content-area">
-                        <Outlet />
-                    </div>
-                </DashboardSearchContext.Provider>
-                <Footer />
+                <div className="main-below-header">
+                    <DashboardSearchContext.Provider value={{ query: searchQuery, setQuery: setSearchQuery }}>
+                        <div className="content-area">
+                            <Outlet />
+                        </div>
+                    </DashboardSearchContext.Provider>
+                    <Footer />
+                </div>
             </main>
             <AIAssistantFAB />
         </div>
