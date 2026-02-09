@@ -1,0 +1,38 @@
+.auth-provider {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+}
+
+.auth-provider__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.auth-provider__icon svg {
+    display: block;
+    vertical-align: middle;
+}
+
+.auth-provider__icon--facebook {
+    background: transparent !important;
+    border: none;
+    border-radius: 50%;
+    overflow: hidden;
+}
+
+.auth-provider__icon--facebook svg {
+    border-radius: 50%;
+    background: transparent !important;
+}
+
+.auth-provider--email .auth-provider__icon {
+    color: var(--color-text-secondary, #333333);
+}
+
+.auth-provider__label {
+    color: var(--color-text-primary, #333333);
+}

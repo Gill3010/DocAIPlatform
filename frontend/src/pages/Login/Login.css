@@ -1,0 +1,346 @@
+/* ===== Layout principal ===== */
+.login-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-md);
+    position: relative;
+    transition: background var(--transition-base);
+}
+
+.login-container.login-mode {
+    background: var(--gradient-primary);
+}
+
+.login-container.register-mode {
+    background: var(--gradient-secondary);
+}
+
+.theme-toggle-wrapper {
+    position: absolute;
+    top: var(--spacing-lg);
+    right: var(--spacing-lg);
+    z-index: 10;
+}
+
+.login-card {
+    width: 100%;
+    max-width: 440px;
+    background: var(--color-surface);
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-2xl);
+    box-shadow: var(--shadow-xl);
+}
+
+/* ===== Header con diferenciación visual ===== */
+.login-header {
+    text-align: center;
+    margin-bottom: var(--spacing-2xl);
+}
+
+.login-header-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 72px;
+    height: 72px;
+    margin: 0 auto var(--spacing-lg);
+    border-radius: var(--radius-xl);
+    transition: all var(--transition-base);
+}
+
+.login-header--login .login-header-icon {
+    background: #F2F2F2;
+    color: var(--color-primary);
+}
+
+.login-header--register .login-header-icon {
+    background: #F2F2F2;
+    color: var(--color-secondary);
+}
+
+[data-theme="dark"] .login-header--register .login-header-icon {
+    background: #F2F2F2;
+}
+
+/* Jerarquía: Título → Descripción → Campos → Acción */
+.login-title {
+    font-size: var(--font-size-2xl);
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin: 0 0 var(--spacing-sm);
+    line-height: 1.2;
+}
+
+.login-description {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-base);
+    margin: 0;
+    line-height: 1.5;
+}
+
+/* ===== Mensaje de error ===== */
+.login-error {
+    padding: var(--spacing-md);
+    background: #FFD8A8;
+    border: 1px solid var(--color-error);
+    border-radius: var(--radius-md);
+    color: var(--color-error);
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--spacing-lg);
+}
+
+[data-theme="dark"] .login-error {
+    background: #FFD8A8;
+    color: var(--color-error);
+}
+
+/* ===== Login social ===== */
+.login-social {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-md);
+}
+
+.btn-social {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    width: 100%;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    min-height: 44px;
+}
+
+.btn-google:hover:not(:disabled) {
+    background: var(--color-surface-hover);
+    border-color: var(--color-primary);
+}
+
+.btn-facebook {
+    border-color: #4F8CC9;
+}
+
+.btn-facebook:hover:not(:disabled) {
+    background: #F2F2F2;
+    border-color: #4F8CC9;
+}
+
+.btn-social:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.btn-social:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+.login-separator {
+    text-align: center;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+    margin: 0 0 var(--spacing-lg);
+}
+
+/* ===== Formulario ===== */
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.form-group label {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    color: var(--color-text-primary);
+}
+
+.form-group input {
+    padding: var(--spacing-md);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    background: var(--color-bg-secondary);
+    color: var(--color-text-primary);
+    font-size: var(--font-size-base);
+    transition: all var(--transition-fast);
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: var(--focus-ring);
+}
+
+.form-group input[aria-invalid="true"] {
+    border-color: var(--color-error-dark);
+}
+
+/* ===== Campo de contraseña con icono ojo ===== */
+.password-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-input-wrapper input {
+    flex: 1;
+    padding-right: 48px;
+}
+
+.password-toggle {
+    position: absolute;
+    right: var(--spacing-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: none;
+    border: none;
+    color: var(--color-text-secondary);
+    cursor: pointer;
+    border-radius: var(--radius-md);
+    transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.password-toggle:hover {
+    color: var(--color-primary);
+    background: #F2F2F2;
+}
+
+.password-toggle:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+/* ===== Mensajes de validación ===== */
+.form-message {
+    font-size: var(--font-size-sm);
+    margin: var(--spacing-xs) 0 0;
+}
+
+.form-message--error {
+    color: var(--color-error-dark);
+}
+
+.form-message--success {
+    color: var(--color-success-dark);
+}
+
+[data-theme="dark"] .form-message--success {
+    color: var(--color-success-dark);
+}
+
+/* ===== Requisitos de contraseña (solo registro) ===== */
+.password-requirements {
+    padding: var(--spacing-md);
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border-light);
+}
+
+.password-requirements-title {
+    font-size: var(--font-size-xs);
+    font-weight: 600;
+    color: var(--color-text-secondary);
+    margin: 0 0 var(--spacing-xs);
+}
+
+.password-requirements ul {
+    margin: 0;
+    padding-left: var(--spacing-lg);
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+}
+
+/* ===== Botón principal ===== */
+.btn-primary {
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--gradient-primary);
+    color: white;
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    box-shadow: var(--shadow-md);
+    margin-top: var(--spacing-sm);
+}
+
+.login-mode .btn-primary {
+    background: var(--gradient-primary);
+}
+
+.register-mode .btn-primary {
+    background: var(--gradient-secondary);
+}
+
+.btn-primary:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+}
+
+.btn-primary:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* ===== Footer con enlace secundario ===== */
+.login-footer {
+    margin-top: var(--spacing-xl);
+    text-align: center;
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.login-footer p {
+    margin: 0;
+}
+
+.link-button {
+    background: none;
+    color: var(--color-primary);
+    font-weight: 600;
+    padding: 0;
+    border: none;
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: inherit;
+    transition: color var(--transition-fast);
+}
+
+.link-button:hover {
+    color: var(--color-primary-hover);
+}
+
+.register-mode .link-button {
+    color: var(--color-secondary);
+}
+
+.register-mode .link-button:hover {
+    color: var(--color-secondary-hover);
+}

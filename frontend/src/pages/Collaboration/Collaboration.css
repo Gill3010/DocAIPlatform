@@ -1,0 +1,194 @@
+.collab-page {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.collab-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 2rem;
+    background-color: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    animation: slideUp 0.6s ease-out;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.status-badge.connected {
+    background-color: #DFF5EA;
+    color: #2ECC71;
+}
+
+.status-badge.disconnected {
+    background-color: #FFD8A8;
+    color: #FF8C42;
+}
+
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.user-count {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+}
+
+.collab-editor-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 2rem;
+    max-width: 1000px;
+    margin: 0 auto;
+    width: 100%;
+    animation: slideUp 0.65s ease-out;
+}
+
+.tiptap-editor-wrapper {
+    flex: 1;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 0 0 8px 8px;
+    padding: 2rem;
+    overflow-y: auto;
+}
+
+.tiptap-editor-wrapper .tiptap {
+    min-height: 500px;
+    outline: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 1.1rem;
+    line-height: 1.6;
+}
+
+.tiptap p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left;
+    color: var(--text-secondary);
+    pointer-events: none;
+    height: 0;
+}
+
+/* Collaborative Cursor Styles */
+.collaboration-cursor__caret {
+    border-left: 2px solid;
+    border-right: 2px solid;
+    margin-left: -1px;
+    margin-right: -1px;
+    pointer-events: none;
+    position: relative;
+    word-break: normal;
+}
+
+.collaboration-cursor__label {
+    border-radius: 3px 3px 3px 0;
+    color: #FFFFFF;
+    font-size: 12px;
+    font-style: normal;
+    font-weight: 600;
+    left: -1px;
+    line-height: normal;
+    padding: 0.1rem 0.3rem;
+    position: absolute;
+    top: -1.4em;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.editor-toolbar {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+}
+
+.editor-toolbar button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 4px;
+    border: none;
+    background: none;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.editor-toolbar button:hover {
+    background-color: var(--bg-primary);
+}
+
+.editor-toolbar button.is-active {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+.back-btn,
+.save-btn,
+.perm-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: none;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.back-btn:hover,
+.save-btn:hover,
+.perm-btn:hover {
+    background-color: var(--bg-tertiary);
+}

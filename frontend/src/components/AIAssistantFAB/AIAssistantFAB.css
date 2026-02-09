@@ -1,0 +1,408 @@
+/* FAB Wrapper - mantiene la posición fixed del FAB */
+.ai-fab-wrapper {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 1000;
+}
+
+/* Tooltip a la IZQUIERDA del FAB - mismo estilo elegante */
+.ai-fab-tooltip {
+    position: absolute;
+    right: calc(100% + 12px);
+    top: 50%;
+    transform: translateY(-50%);
+    padding: 12px 16px;
+    white-space: nowrap;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    pointer-events: none;
+    z-index: 1001;
+    border-radius: 12px;
+    background: #0A2540;
+    color: #ffffff;
+}
+
+/* Flecha del tooltip apuntando a la DERECHA (hacia el FAB) */
+.ai-fab-tooltip::after {
+    content: '';
+    position: absolute;
+    left: 100%;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 10px solid transparent;
+    border-left-color: #0A2540;
+}
+
+[data-theme="dark"] .ai-fab-tooltip {
+    background: #1C2A3A;
+    color: #f7fafc;
+}
+
+[data-theme="dark"] .ai-fab-tooltip::after {
+    border-left-color: #1C2A3A;
+}
+
+/* FAB Button */
+.ai-fab {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--gradient-primary);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: none;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    border: none;
+    overflow: hidden;
+}
+
+/* Sin fondo cuando se muestra el avatar - el avatar ocupa todo */
+.ai-fab:not(.open) {
+    background: transparent;
+}
+
+/* Avatar más grande para llenar todo el círculo, sin dejar espacios */
+.ai-fab-avatar {
+    position: absolute;
+    inset: -42%;
+    width: 184%;
+    height: 184%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+}
+
+.ai-fab:hover {
+    transform: scale(1.1);
+    box-shadow: none;
+}
+
+.ai-fab:active {
+    transform: scale(0.95);
+}
+
+.ai-fab.open {
+    background: var(--color-error-dark);
+}
+
+.ai-fab-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    background: var(--color-error-dark);
+    color: white;
+    font-size: var(--font-size-xs);
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: var(--radius-full);
+    min-width: 20px;
+    text-align: center;
+}
+
+/* ===== Panel dockeado (misma altura que el menú izquierdo, fijo al scroll) ===== */
+.ai-chat-panel--docked {
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: var(--ai-panel-width);
+    height: 100vh;
+    max-height: 100vh;
+    background: var(--color-surface);
+    border-left: 1px solid var(--color-border);
+    box-shadow: none;
+    display: flex;
+    flex-direction: column;
+    z-index: var(--z-fixed);
+    transform: translateX(100%);
+    visibility: hidden;
+    transition: transform var(--transition-base), visibility var(--transition-base), box-shadow var(--transition-base);
+    pointer-events: none;
+}
+
+.ai-chat-panel--docked.ai-chat-panel--open {
+    transform: translateX(0);
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.ai-chat-panel--docked.minimized {
+    height: auto;
+    min-height: 60px;
+    overflow: hidden;
+}
+
+/* Header */
+.ai-chat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--gradient-primary);
+    color: white;
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+    min-height: 60px;
+    flex-shrink: 0;
+}
+
+.ai-chat-panel--docked .ai-chat-header {
+    border-radius: 0;
+}
+
+.ai-chat-header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+}
+
+/* Avatar del asistente en el header del chat */
+/* Contenedor circular para el avatar del header - mismo estilo que el FAB */
+.ai-chat-avatar-wrapper {
+    position: relative;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.ai-chat-avatar {
+    position: absolute;
+    inset: -42%;
+    width: 184%;
+    height: 184%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+}
+
+.ai-chat-header h3 {
+    margin: 0;
+    font-size: var(--font-size-base);
+    font-weight: 600;
+    color: white;
+}
+
+.ai-chat-status {
+    font-size: var(--font-size-xs);
+    opacity: 0.9;
+}
+
+.ai-chat-header-actions {
+    display: flex;
+    gap: var(--spacing-xs);
+}
+
+.ai-chat-btn {
+    background: transparent;
+    border: none;
+    color: white;
+    padding: var(--spacing-xs);
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ai-chat-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* Messages */
+.ai-chat-messages {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: var(--spacing-lg);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    background: var(--color-bg-secondary);
+}
+
+.ai-chat-message {
+    display: flex;
+    flex-direction: column;
+    max-width: 85%;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.ai-chat-message.user {
+    align-self: flex-end;
+}
+
+.ai-chat-message.assistant {
+    align-self: flex-start;
+}
+
+.ai-chat-message-content {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-lg);
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    line-height: 1.5;
+    font-size: var(--font-size-sm);
+}
+
+.ai-chat-message.user .ai-chat-message-content {
+    background: var(--gradient-primary);
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+.ai-chat-message.assistant .ai-chat-message-content {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    color: var(--color-text-primary);
+    border-bottom-left-radius: 4px;
+}
+
+.ai-chat-message-time {
+    font-size: var(--font-size-xs);
+    color: var(--color-text-tertiary);
+    margin-top: var(--spacing-xs);
+    padding: 0 var(--spacing-md);
+}
+
+.ai-chat-message.user .ai-chat-message-time {
+    text-align: right;
+}
+
+/* Input */
+.ai-chat-input-container {
+    padding: var(--spacing-md) var(--spacing-lg);
+    background: var(--color-surface);
+    border-top: 1px solid var(--color-border);
+    border-radius: 0 0 var(--radius-xl) var(--radius-xl);
+    flex-shrink: 0;
+}
+
+.ai-chat-panel--docked .ai-chat-input-container {
+    border-radius: 0;
+}
+
+.ai-chat-warning {
+    padding: var(--spacing-sm);
+    background: #FFD8A8;
+    border-left: 3px solid var(--color-warning);
+    border-radius: var(--radius-sm);
+    font-size: var(--font-size-xs);
+    color: #333333;
+    margin-bottom: var(--spacing-sm);
+}
+
+.ai-chat-input-form {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: center;
+}
+
+.ai-chat-input {
+    flex: 1;
+    padding: var(--spacing-sm) var(--spacing-md);
+    background: var(--color-bg-secondary);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    font-size: var(--font-size-sm);
+    transition: all var(--transition-fast);
+    font-family: inherit;
+}
+
+.ai-chat-input:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    background: var(--color-surface);
+}
+
+.ai-chat-input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.ai-chat-send-btn {
+    padding: var(--spacing-sm);
+    background: var(--gradient-primary);
+    color: white;
+    border-radius: var(--radius-lg);
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+    flex-shrink: 0;
+    border: none;
+    cursor: pointer;
+}
+
+.ai-chat-send-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.ai-chat-send-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Loader */
+.ai-chat-loader {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive: panel dockeado en móvil ocupa ancho completo, misma altura 100vh */
+@media (max-width: 768px) {
+    .ai-fab-wrapper {
+        bottom: 16px;
+        right: 16px;
+    }
+
+    .ai-fab {
+        width: 56px;
+        height: 56px;
+    }
+
+    .ai-chat-panel--docked {
+        width: 100%;
+        max-width: 100%;
+    }
+
+    .ai-chat-header {
+        padding: var(--spacing-sm) var(--spacing-md);
+    }
+
+    .ai-chat-messages {
+        padding: var(--spacing-md);
+    }
+
+    .ai-chat-input-container {
+        padding: var(--spacing-sm) var(--spacing-md);
+    }
+}

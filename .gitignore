@@ -1,0 +1,64 @@
+# Credentials
+.git-credentials
+.gitconfig
+
+# PM2
+.pm2/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.venv/
+.venv-new/
+
+# Frontend
+node_modules/
+dist/
+.cache/
+
+# IDE / Editor
+.vscode/
+.idea/
+.cursor/
+.cursor-server/
+.npm/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Storage and uploads
+backend/storage/
+backend/backend/storage/
+backend/static/uploads/
+
+# Shell / system (no subir a repo)
+.bash_history
+.bash_logout
+.bash_profile
+.bashrc
+.lesshst
+.ssh/
+
+# Archivos temporales / comprimidos
+*.tar.gz

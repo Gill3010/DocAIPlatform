@@ -1,0 +1,211 @@
+.pdf-tools-page {
+    animation: fadeIn 0.5s ease-in-out;
+    padding-bottom: var(--spacing-2xl);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.pdf-tools-header {
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+    animation: slideUp 0.6s ease-out;
+}
+
+.pdf-tools-title {
+    font-size: var(--font-size-2xl);
+    color: var(--color-text-primary);
+    margin-bottom: var(--spacing-xs);
+}
+
+.pdf-tools-subtitle {
+    color: var(--color-text-secondary);
+    font-size: var(--font-size-sm);
+}
+
+.pdf-tools-layout {
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: var(--spacing-xl);
+    align-items: start;
+    animation: slideUp 0.65s ease-out;
+}
+
+@media (max-width: 768px) {
+    .pdf-tools-layout {
+        grid-template-columns: 1fr;
+    }
+}
+
+.pdf-tools-nav {
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    padding: var(--spacing-sm);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.pdf-tools-nav-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    color: var(--color-text-primary);
+    font-size: var(--font-size-sm);
+}
+
+.pdf-tools-nav-item:hover {
+    background: var(--color-bg-secondary);
+}
+
+.pdf-tools-nav-item.active {
+    background: var(--color-primary);
+    color: white;
+}
+
+.pdf-tools-nav-item.coming-soon {
+    opacity: 0.75;
+}
+
+.pdf-tools-nav-item .badge {
+    margin-left: auto;
+    font-size: 10px;
+    color: var(--color-text-tertiary);
+}
+
+.pdf-tools-nav-item.active .badge {
+    color: #FFFFFF;
+}
+
+.pdf-tools-main {
+    background: var(--color-surface);
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--color-border);
+    padding: var(--spacing-xl);
+    min-height: 280px;
+}
+
+.pdf-tools-empty,
+.pdf-tools-coming {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-md);
+    color: var(--color-text-tertiary);
+    padding: var(--spacing-2xl);
+}
+
+.pdf-tools-form-wrap h2 {
+    font-size: var(--font-size-lg);
+    margin-bottom: var(--spacing-lg);
+    color: var(--color-text-primary);
+}
+
+.pdf-tools-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+    max-width: 400px;
+}
+
+.pdf-tools-form label {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    color: var(--color-text-primary);
+}
+
+.pdf-tools-form input[type="file"],
+.pdf-tools-form input[type="text"],
+.pdf-tools-form input[type="password"],
+.pdf-tools-form input[type="number"],
+.pdf-tools-form select {
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-border);
+    background: var(--color-bg-primary);
+    color: var(--color-text-primary);
+}
+
+.pdf-tools-error {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    background: #FFD8A8;
+    border-radius: var(--radius-md);
+    color: var(--color-error);
+    font-size: var(--font-size-sm);
+}
+
+.pdf-tools-success {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    background: #DFF5EA;
+    border-radius: var(--radius-md);
+    color: var(--color-success);
+    font-size: var(--font-size-sm);
+}
+
+.pdf-tools-submit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-md) var(--spacing-xl);
+    background: var(--gradient-primary);
+    color: white;
+    border: none;
+    border-radius: var(--radius-lg);
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: var(--spacing-sm);
+}
+
+.pdf-tools-submit:hover:not(:disabled) {
+    opacity: 0.95;
+    transform: translateY(-1px);
+}
+
+.pdf-tools-submit:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+}
+
+.pdf-tools-submit .spin {
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}

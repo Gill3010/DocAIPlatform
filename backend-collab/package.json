@@ -1,0 +1,35 @@
+{
+  "name": "collab-service",
+  "version": "1.0.0",
+  "description": "Real-time collaboration service using Hocuspocus/Yjs",
+  "main": "dist/server.js",
+  "scripts": {
+    "start": "node dist/server.js",
+    "build": "tsc",
+    "dev": "ts-node src/server.ts"
+  },
+  "dependencies": {
+    "@hocuspocus/extension-database": "^2.13.5",
+    "@hocuspocus/extension-logger": "^2.13.5",
+    "@hocuspocus/extension-redis": "^2.13.5",
+    "@hocuspocus/server": "^2.13.5",
+    "dotenv": "^16.4.5",
+    "jsonwebtoken": "^9.0.2",
+    "lib0": "^0.2.117",
+    "pg": "^8.11.3",
+    "redis": "^4.6.13",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7",
+    "ws": "^8.19.0",
+    "y-protocols": "^1.0.7",
+    "yjs": "^13.6.14"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/node": "^20.11.24",
+    "@types/pg": "^8.11.2",
+    "@types/ws": "^8.18.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.3.3"
+  }
+}

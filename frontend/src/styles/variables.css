@@ -1,0 +1,156 @@
+:root {
+  /* ===== Paleta de colores - Tema claro ===== */
+  /* Fondo: blanco y grises muy suaves */
+  --color-bg-primary: #FFFFFF;
+  --color-bg-secondary: #F2F2F2;
+  --color-bg-tertiary: #F2F2F2;
+  --color-surface: #FFFFFF;
+  --color-surface-hover: #F2F2F2;
+
+  /* Textos: grises legibles (WCAG AA) */
+  --color-text-primary: #333333;
+  --color-text-secondary: #333333;
+  --color-text-tertiary: #333333;
+
+  /* Bordes */
+  --color-border: #F2F2F2;
+  --color-border-light: #F2F2F2;
+
+  /* Color primario: Azul oscuro clásico para navegación y títulos */
+  --color-primary: #0A2540;
+  --color-primary-hover: #1C2A3A;
+  --color-primary-light: #4F8CC9;
+
+  /* Color secundario: Variantes de azul */
+  --color-secondary: #1F3C88;
+  --color-secondary-hover: #002B5B;
+
+  /* Feedback: colores obligatorios */
+  --color-success: #2ECC71;
+  --color-success-dark: #6FCF97;
+  --color-warning: #FFD8A8;
+  --color-error: #FF8C42;
+  --color-error-dark: #FF8C42;
+  --color-info: #4F8CC9;
+
+  /* Acciones / CTA: Naranja obligatorio */
+  --color-cta: #FF8C42;
+  --color-cta-hover: #FFD8A8;
+
+  /* Gradientes: convertidos a lineales planos con la paleta */
+  --gradient-primary: linear-gradient(135deg, #0A2540 0%, #1F3C88 100%);
+  --gradient-secondary: linear-gradient(135deg, #1F3C88 0%, #002B5B 100%);
+  --gradient-success: linear-gradient(135deg, #2ECC71 0%, #6FCF97 100%);
+  
+  /* Asistente IA: ajustado a azul institucional y CTA */
+  --gradient-ai: linear-gradient(135deg, #0A2540 0%, #1C2A3A 100%);
+  --gradient-ai-hover: linear-gradient(135deg, #1C2A3A 0%, #002B5B 100%);
+  --gradient-ai-active: linear-gradient(135deg, #002B5B 0%, #1C2A3A 100%);
+  --color-ai-shadow: rgba(10, 37, 64, 0.2);
+  --color-ai-focus-ring: rgba(10, 37, 64, 0.3);
+
+  /* Sombras: eliminadas según instrucción */
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-xl: none;
+
+  /* Focus: alto contraste */
+  --focus-ring: 0 0 0 3px rgba(255, 140, 66, 0.4);
+  --focus-border: #FF8C42;
+
+  /* Spacing */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+  --spacing-2xl: 3rem;
+
+  /* Border Radius */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-full: 9999px;
+
+  /* Transitions */
+  --transition-fast: 150ms ease-in-out;
+  --transition-base: 300ms ease-in-out;
+  --transition-slow: 500ms ease-in-out;
+
+  /* Typography */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 1.875rem;
+  --font-size-4xl: 2.25rem;
+
+  /* Layout */
+  --sidebar-width: 280px;
+  --sidebar-collapsed-width: 80px;
+  --header-height: 64px;
+  --ai-panel-width: 380px;
+
+  /* Z-index */
+  --z-dropdown: 1000;
+  --z-sticky: 1020;
+  --z-fixed: 1030;
+  --z-modal-backdrop: 1040;
+  --z-modal: 1050;
+  --z-popover: 1060;
+  --z-tooltip: 1070;
+}
+
+/* Tema oscuro: fondos oscuros y texto claro; contraste con #39FF14 y #FF4D00 */
+[data-theme="dark"] {
+  --color-bg-primary: #0A2540;
+  --color-bg-secondary: #1C2A3A;
+  --color-bg-tertiary: #1F3C88;
+  --color-surface: #1C2A3A;
+  --color-surface-hover: #002B5B;
+
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #F2F2F2;
+  --color-text-tertiary: #F2F2F2;
+
+  /* Primario y secundario: verde para enlaces, iconos y textos de acento */
+  --color-primary: #39FF14;
+  --color-primary-hover: #5AFF3D;
+  --color-primary-light: rgba(57, 255, 20, 0.35);
+  --color-secondary: #5AFF3D;
+  --color-secondary-hover: #7AFF5C;
+
+  /* CTAs y focus: naranja para acciones y foco */
+  --color-cta: #FF4D00;
+  --color-cta-hover: #FF6D2E;
+  --focus-border: #FF4D00;
+  --focus-ring: 0 0 0 3px rgba(255, 77, 0, 0.4);
+
+  /* Feedback: verde éxito, naranja error/aviso */
+  --color-success: #39FF14;
+  --color-success-dark: #5AFF3D;
+  --color-error: #FF4D00;
+  --color-error-dark: #FF6D2E;
+  --color-warning: #FF6D2E;
+  --color-info: #5AFF3D;
+
+  /* Bordes visibles sobre fondo oscuro */
+  --color-border: rgba(57, 255, 20, 0.25);
+  --color-border-light: rgba(57, 255, 20, 0.15);
+
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-xl: none;
+
+  --gradient-ai: linear-gradient(135deg, #0A2540 0%, #1C2A3A 100%);
+  --gradient-ai-hover: linear-gradient(135deg, #1C2A3A 0%, #002B5B 100%);
+  --gradient-ai-active: linear-gradient(135deg, #002B5B 0%, #1C2A3A 100%);
+  --color-ai-shadow: rgba(10, 37, 64, 0.2);
+  --color-ai-focus-ring: rgba(255, 77, 0, 0.3);
+}

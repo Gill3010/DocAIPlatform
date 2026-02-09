@@ -1,0 +1,113 @@
+.security-page {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: var(--spacing-xl) 0;
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.security-header {
+    text-align: center;
+    margin-bottom: var(--spacing-2xl);
+    animation: slideUp 0.6s ease-out;
+}
+
+.security-header__icon {
+    color: var(--color-primary);
+    margin-bottom: var(--spacing-md);
+}
+
+.security-page__title {
+    font-size: var(--font-size-3xl);
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin: 0 0 var(--spacing-sm);
+}
+
+.security-page__intro {
+    font-size: var(--font-size-base);
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+    margin: 0;
+}
+
+.security-grid {
+    display: grid;
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-2xl);
+    animation: slideUp 0.65s ease-out;
+}
+
+.security-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-xl);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    transition: border-color var(--transition-fast);
+}
+
+.security-card:hover {
+    border-color: var(--color-primary-light);
+}
+
+.security-card__icon {
+    color: var(--color-primary);
+}
+
+.security-card__title {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin: 0;
+}
+
+.security-card__text {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+    margin: 0;
+}
+
+.security-footer {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    text-align: center;
+    margin: 0;
+}
+
+.security-link {
+    color: var(--color-primary);
+    text-decoration: none;
+    transition: color var(--transition-fast);
+}
+
+.security-link:hover {
+    color: var(--color-primary-hover);
+    text-decoration: underline;
+}

@@ -1,0 +1,343 @@
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(10, 37, 64, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease-out;
+}
+
+.share-modal {
+    background: #FFFFFF;
+    width: 100%;
+    max-width: 500px;
+    border-radius: 16px;
+    overflow: hidden;
+    animation: slideUp 0.3s ease-out;
+    display: flex;
+    flex-direction: column;
+    max-height: 85vh;
+}
+
+.share-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #F2F2F2;
+}
+
+.share-header h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #0A2540;
+    margin: 0;
+}
+
+.close-btn {
+    background: transparent;
+    border: none;
+    color: #333333;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 6px;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.close-btn:hover {
+    background-color: #F2F2F2;
+    color: #0A2540;
+}
+
+.share-section {
+    padding: 1.25rem 1.5rem 0;
+}
+
+.share-section h4 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #333333;
+    margin: 0 0 0.75rem 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.share-search {
+    margin-bottom: 1rem;
+}
+
+.search-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-icon {
+    position: absolute;
+    left: 12px;
+    color: #333333;
+    pointer-events: none;
+}
+
+.search-input-wrapper input {
+    width: 100%;
+    padding: 0.625rem 1rem 0.625rem 2.5rem;
+    border: 1px solid #F2F2F2;
+    border-radius: 8px;
+    font-size: 0.9375rem;
+    color: #333333;
+    transition: all 0.2s;
+}
+
+.search-input-wrapper input:focus {
+    outline: none;
+    border-color: #FF8C42;
+    box-shadow: 0 0 0 3px #FFD8A8;
+}
+
+.share-results {
+    min-height: 50px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.collaborators-section {
+    border-top: 1px solid #F2F2F2;
+    margin-top: 1rem;
+    padding-bottom: 1.5rem;
+    background-color: #FFFFFF;
+}
+
+.collaborators-list {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.results-loading,
+.no-results,
+.no-collabs {
+    padding: 1rem;
+    text-align: center;
+    color: #333333;
+    font-size: 0.9375rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.spin sub {
+    animation: spin 1s linear infinite;
+}
+
+.user-result {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+    margin-bottom: 0.25rem;
+}
+
+.user-result:hover {
+    background-color: #F2F2F2;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+
+.user-avatar img,
+.avatar-placeholder {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid #F2F2F2;
+    flex-shrink: 0;
+}
+
+.avatar-placeholder {
+    background-color: #FFD8A8;
+    color: #FF8C42;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 1.125rem;
+    border: 1px solid #FF8C42;
+}
+
+.user-details {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.user-name {
+    margin: 0;
+    font-weight: 500;
+    color: #333333;
+    font-size: 0.9375rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.user-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: nowrap;
+    overflow: hidden;
+}
+
+.user-email {
+    margin: 0;
+    color: #333333;
+    font-size: 0.8125rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
+}
+
+.role-badge {
+    font-size: 0.7rem;
+    padding: 0.125rem 0.375rem;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    flex-shrink: 0;
+}
+
+.role-badge.viewer {
+    background-color: #F2F2F2;
+    color: #333333;
+}
+
+.role-badge.editor {
+    background-color: #FFD8A8;
+    color: #FF8C42;
+}
+
+.share-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.share-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 6px;
+    border: 1px solid #F2F2F2;
+    background: #FFFFFF;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #333333;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.share-btn:hover:not(:disabled) {
+    border-color: #FF8C42;
+    background-color: #F2F2F2;
+}
+
+.share-btn.reader:hover:not(:disabled) {
+    color: #0A2540;
+    border-color: #0A2540;
+}
+
+.share-btn.writer:hover:not(:disabled) {
+    color: #FF8C42;
+    border-color: #FF8C42;
+    background-color: #FFD8A8;
+}
+
+.share-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.remove-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: #333333;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.remove-btn:hover {
+    color: #FF8C42;
+    background-color: #FFD8A8;
+}
+
+.success-badge {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.375rem 0.75rem;
+    background-color: #DFF5EA;
+    color: #2ECC71;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    border-radius: 6px;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}

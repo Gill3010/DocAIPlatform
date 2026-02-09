@@ -1,0 +1,124 @@
+/* KPI: solo lectura, no interactivo; estilo "dato" no "botón" */
+.stats-card {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-lg);
+    padding: var(--spacing-xl);
+    background: var(--color-surface);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--color-border);
+    transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+    position: relative;
+    overflow: hidden;
+}
+
+.stats-card:hover {
+    border-color: var(--color-border-light);
+    box-shadow: var(--shadow-sm);
+}
+
+.stats-icon-wrapper {
+    min-width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-md);
+    background: var(--color-bg-tertiary);
+    position: relative;
+    flex-shrink: 0;
+}
+
+.stats-icon-wrapper.gradient-primary {
+    background: var(--color-bg-tertiary);
+}
+
+.stats-icon-wrapper.gradient-success {
+    background: #DFF5EA;
+}
+
+.stats-icon-wrapper.gradient-warning {
+    background: #FFD8A8;
+}
+
+.stats-icon-wrapper.gradient-info {
+    background: #F2F2F2;
+}
+
+.stats-icon {
+    color: var(--color-text-secondary);
+    z-index: 1;
+}
+
+.stats-icon-wrapper.gradient-primary .stats-icon {
+    color: var(--color-primary);
+}
+
+.stats-icon-wrapper.gradient-success .stats-icon {
+    color: var(--color-success-dark);
+}
+
+.stats-icon-wrapper.gradient-warning .stats-icon {
+    color: #FF8C42;
+}
+
+.stats-icon-wrapper.gradient-info .stats-icon {
+    color: var(--color-primary);
+}
+
+.stats-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.stats-header {
+    display: flex;
+    align-items: baseline;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-xs);
+}
+
+.stats-value {
+    font-size: var(--font-size-3xl);
+    font-weight: 700;
+    color: var(--color-text-primary);
+    line-height: 1;
+}
+
+.stats-trend {
+    font-size: var(--font-size-sm);
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+}
+
+.stats-trend.positive {
+    color: #2ECC71;
+    background: #DFF5EA;
+}
+
+.stats-trend.negative {
+    color: #FF8C42;
+    background: #FFD8A8;
+}
+
+.stats-label {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    font-weight: 500;
+}
+
+@media (max-width: 768px) {
+    .stats-card {
+        padding: var(--spacing-lg);
+    }
+
+    .stats-icon-wrapper {
+        min-width: 48px;
+        height: 48px;
+    }
+
+    .stats-value {
+        font-size: var(--font-size-2xl);
+    }
+}
