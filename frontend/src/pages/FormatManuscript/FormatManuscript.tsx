@@ -1,10 +1,20 @@
 import { useState, useCallback } from 'react';
 import { Upload, FileText, CheckCircle2, AlertCircle } from 'lucide-react';
+import { useAppStore } from '../../stores/appStore';
+import { useAnonymousSession } from '../../hooks/useAnonymousSession';
+import { ConversionLimitModal } from '../../components/ConversionLimitModal/ConversionLimitModal';
+import { UpgradeModal } from '../../components/UpgradeModal/UpgradeModal';
 import './FormatManuscript.css';
 
 export const FormatManuscript = () => {
+    const { token, user } = useAppStore();
+    const { sessionId, creditsRemaining, anonymousLimit } = useAnonymousSession();
+    const isAnonymous = !token;
+
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [isDragging, setIsDragging] = useState(false);
+    const [showLimitModal, setShowLimitModal] = useState(false);
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
     const handleDragOver = useCallback((e: React.DragEvent) => {
         e.preventDefault();
@@ -43,14 +53,36 @@ export const FormatManuscript = () => {
         return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
     };
 
+    const creditsLimit = isAnonymous ? anonymousLimit : 5;
+    const authCreditsRemaining = user ? Math.max(0, 5 - (user.free_conversion_count ?? 0)) : 0;
+    const displayRemaining = isAnonymous ? creditsRemaining : authCreditsRemaining;
+    const creditsLabel =
+        user?.is_superuser || user?.can_access_admin_panel
+            ? 'Ilimitado'
+            : `${displayRemaining} de ${creditsLimit} créditos`;
+
     return (
         <div className="format-manuscript-page">
+            <ConversionLimitModal
+                isOpen={showLimitModal}
+                onClose={() => setShowLimitModal(false)}
+                anonymousSessionId={sessionId}
+            />
+            <UpgradeModal
+                isOpen={showUpgradeModal}
+                onClose={() => setShowUpgradeModal(false)}
+            />
             <div className="format-header">
                 <div>
                     <h2>Formatear Manuscrito</h2>
                     <p>Sube tu manuscrito y aplica formato profesional automáticamente</p>
                 </div>
                 <div className="format-status">
+                    {!(user?.is_superuser || user?.can_access_admin_panel) && (
+                        <span className="status-badge credits-badge" title="Créditos compartidos con conversiones, PDF y Asistente IA">
+                            {creditsLabel}
+                        </span>
+                    )}
                     <span className="status-badge coming-soon">Próximamente</span>
                 </div>
             </div>

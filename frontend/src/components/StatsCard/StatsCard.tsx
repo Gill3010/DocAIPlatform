@@ -10,13 +10,15 @@ interface StatsCardProps {
         isPositive: boolean;
     };
     gradient?: string;
+    /** Reduce padding and font size for compact layout (e.g. dashboard summary) */
+    compact?: boolean;
 }
 
-export const StatsCard = ({ icon: Icon, value, label, trend, gradient }: StatsCardProps) => {
+export const StatsCard = ({ icon: Icon, value, label, trend, gradient, compact }: StatsCardProps) => {
     return (
-        <div className="stats-card">
+        <div className={`stats-card ${compact ? 'stats-card--compact' : ''}`}>
             <div className={`stats-icon-wrapper ${gradient || 'gradient-primary'}`}>
-                <Icon className="stats-icon" size={24} strokeWidth={2} />
+                <Icon className="stats-icon" size={compact ? 20 : 24} strokeWidth={2} />
             </div>
             <div className="stats-content">
                 <div className="stats-header">

@@ -20,7 +20,7 @@ interface ConversionCardProps {
 
 const CATEGORY_GRADIENT: Record<ConversionCategory, string> = {
     document: 'gradient-primary',
-    image: 'gradient-info',
+    image: 'gradient-primary',
     web: 'gradient-warm'
 };
 
@@ -49,7 +49,13 @@ export const ConversionCard = ({
                 <ArrowRight size={16} className="conversion-card__arrow" aria-hidden />
                 <span className="conversion-card__target">{targetLabel}</span>
             </div>
-            <span className="conversion-card__cta">{cta}</span>
+            <span className="conversion-card__cta">
+                {(cta === 'Convertir' || cta === 'Usar') ? (
+                    <span className="conversion-card__cta-btn" aria-hidden="true">{cta}</span>
+                ) : (
+                    cta
+                )}
+            </span>
             {tooltip && (
                 <span className="conversion-card__tooltip" role="tooltip">
                     {tooltip}

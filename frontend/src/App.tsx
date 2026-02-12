@@ -104,7 +104,7 @@ function App() {
             <Route path="convert" element={<Convert />} />
             <Route path="pdf-tools" element={<PdfTools />} />
             <Route path="history" element={<RequireAuth><History /></RequireAuth>} />
-            <Route path="format-manuscript" element={<RequireAuth><FormatManuscript /></RequireAuth>} />
+            <Route path="format-manuscript" element={<FormatManuscript />} />
             <Route path="terms-of-use" element={<TermsOfUse />} />
             <Route path="privacy-policy" element={<PrivacyPolicy />} />
             <Route path="pricing" element={<Pricing />} />

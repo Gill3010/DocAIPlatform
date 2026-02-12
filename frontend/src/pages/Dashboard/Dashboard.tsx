@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import { useAppStore } from '../../stores/appStore';
 import { useAnonymousSession } from '../../hooks/useAnonymousSession';
 import { StatsCard } from '../../components/StatsCard/StatsCard';
+import { MiniSuccessRateChart } from '../../components/MiniSuccessRateChart/MiniSuccessRateChart';
+import { MiniCreditsChart } from '../../components/MiniCreditsChart/MiniCreditsChart';
 import { QuickActionCard } from '../../components/QuickActionCard/QuickActionCard';
 import { ConversionCard } from '../../components/ConversionCard/ConversionCard';
 import { apiService } from '../../services/api';
@@ -55,6 +57,13 @@ export const Dashboard = () => {
         }
     ]);
 
+    const [chartData, setChartData] = useState<{
+        successRate: number | null;
+        creditsRemaining: number;
+        creditsTotal: number;
+        creditsUnlimited: boolean;
+    }>({ successRate: null, creditsRemaining: 0, creditsTotal: 0, creditsUnlimited: false });
+
     useEffect(() => {
         loadStats();
     }, [isAnonymous, anonRemaining, isAdminUnlimited, anonSessionId]);
@@ -91,6 +100,12 @@ export const Dashboard = () => {
                         gradient: 'gradient-info'
                     }
                 ]);
+                setChartData({
+                    successRate: anonData.success_rate,
+                    creditsRemaining: anonRemaining,
+                    creditsTotal: anonymousLimit,
+                    creditsUnlimited: false
+                });
             } catch {
                 setStats((prev) => [
                     { ...prev[0], value: String(anonymousConversionsUsed) },
@@ -98,6 +113,7 @@ export const Dashboard = () => {
                     { ...prev[2], value: '—' },
                     { ...prev[3], value: '—' },
                 ]);
+                setChartData((prev) => ({ ...prev, successRate: null }));
             }
             return;
         }
@@ -145,9 +161,15 @@ export const Dashboard = () => {
                     gradient: 'gradient-info'
                 }
             ]);
+            setChartData({
+                successRate: data.success_rate,
+                creditsRemaining: data.credits.remaining,
+                creditsTotal: data.credits.limit,
+                creditsUnlimited: isAdminUnlimited
+            });
         } catch (error) {
             console.error('Failed to load stats:', error);
-            // Keep mock data on error
+            setChartData((prev) => ({ ...prev, successRate: null }));
         }
     };
 
@@ -194,7 +216,7 @@ export const Dashboard = () => {
             description: 'Accede y gestiona todas tus conversiones de documentos anteriores',
             buttonText: 'Ver Historial',
             href: '/history',
-            gradient: 'gradient-info'
+            gradient: 'gradient-primary'
         }
     ];
 
@@ -203,19 +225,36 @@ export const Dashboard = () => {
     return (
         <div className="dashboard-page">
             <section
-                className="dashboard-metrics"
+                className="dashboard-metrics dashboard-metrics--compact"
                 aria-labelledby="metrics-heading"
                 role="region"
             >
-                <h2 id="metrics-heading" className="dashboard-metrics__title">
-                    Tu resumen
-                </h2>
-                <div className="stats-grid" role="list">
-                    {stats.map((stat, index) => (
-                        <div key={index} role="listitem">
-                            <StatsCard {...stat} />
-                        </div>
-                    ))}
+                <div className="dashboard-metrics__header">
+                    <h2 id="metrics-heading" className="dashboard-metrics__title">
+                        Tu resumen
+                    </h2>
+                </div>
+                <div className="stats-grid stats-grid--compact" role="list">
+                    <div key="conversions" role="listitem">
+                        <StatsCard {...stats[0]} compact />
+                    </div>
+                    <div key="credits" role="listitem">
+                        <MiniCreditsChart
+                            remaining={chartData.creditsRemaining}
+                            total={chartData.creditsTotal || 1}
+                            unlimited={chartData.creditsUnlimited}
+                            label={stats[1].label}
+                        />
+                    </div>
+                    <div key="success" role="listitem">
+                        <MiniSuccessRateChart
+                            value={chartData.successRate}
+                            label={stats[2].label}
+                        />
+                    </div>
+                    <div key="time" role="listitem">
+                        <StatsCard {...stats[3]} compact />
+                    </div>
                 </div>
             </section>
 

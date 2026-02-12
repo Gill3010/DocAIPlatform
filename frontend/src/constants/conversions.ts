@@ -40,9 +40,9 @@ export const SOURCE_LABELS: Record<string, string> = {
     xml: 'XML',
     html: 'HTML',
     htm: 'HTML',
-    png: 'Imagen (PNG/JPG)',
-    jpg: 'Imagen (PNG/JPG)',
-    jpeg: 'Imagen (PNG/JPG)',
+    png: 'Imagen',
+    jpg: 'Imagen',
+    jpeg: 'Imagen',
     dxf: 'DXF (CAD)',
     pptx: 'PowerPoint',
     xlsx: 'Excel'
@@ -63,50 +63,50 @@ export const TARGET_LABELS: Record<string, string> = {
 
 export const CONVERSION_MAP: Record<string, Array<{ id: string; name: string; icon: LucideIcon }>> = {
     png: [
-        { id: 'pdf', name: 'Documento PDF', icon: FileText },
+        { id: 'pdf', name: 'PDF', icon: FileText },
         { id: 'dxf', name: 'Archivo DXF (CAD)', icon: Ruler }
     ],
     jpg: [
-        { id: 'pdf', name: 'Documento PDF', icon: FileText },
+        { id: 'pdf', name: 'PDF', icon: FileText },
         { id: 'dxf', name: 'Archivo DXF (CAD)', icon: Ruler }
     ],
     jpeg: [
-        { id: 'pdf', name: 'Documento PDF', icon: FileText },
+        { id: 'pdf', name: 'PDF', icon: FileText },
         { id: 'dxf', name: 'Archivo DXF (CAD)', icon: Ruler }
     ],
     pdf: [
-        { id: 'docx', name: 'Documento Word', icon: File },
+        { id: 'docx', name: 'Word', icon: File },
         { id: 'png', name: 'Imagen PNG', icon: Image },
         { id: 'txt', name: 'Texto Plano', icon: FileText },
         { id: 'pptx', name: 'PowerPoint', icon: Presentation },
         { id: 'xlsx', name: 'Excel', icon: Table }
     ],
     txt: [
-        { id: 'docx', name: 'Documento Word', icon: File }
+        { id: 'docx', name: 'Word', icon: File }
     ],
     docx: [
-        { id: 'pdf', name: 'Documento PDF', icon: FileText },
+        { id: 'pdf', name: 'PDF', icon: FileText },
         { id: 'txt', name: 'Texto Plano', icon: FileText },
         { id: 'xml', name: 'XML', icon: GraduationCap }
     ],
     xml: [
-        { id: 'html', name: 'Página HTML', icon: Globe },
-        { id: 'docx', name: 'Documento Word', icon: File }
+        { id: 'html', name: 'HTML', icon: Globe },
+        { id: 'docx', name: 'Word', icon: File }
     ],
     html: [
-        { id: 'xml', name: 'Archivo XML', icon: FileText }
+        { id: 'xml', name: 'XML', icon: FileText }
     ],
     htm: [
-        { id: 'xml', name: 'Archivo XML', icon: FileText }
+        { id: 'xml', name: 'XML', icon: FileText }
     ],
     dxf: [
         { id: 'png', name: 'Imagen PNG', icon: Image }
     ],
     pptx: [
-        { id: 'pdf', name: 'Documento PDF', icon: FileText }
+        { id: 'pdf', name: 'PDF', icon: FileText }
     ],
     xlsx: [
-        { id: 'pdf', name: 'Documento PDF', icon: FileText }
+        { id: 'pdf', name: 'PDF', icon: FileText }
     ]
 };
 

@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
-import { Outlet, useLocation } from 'react-router-dom';
-import { Menu } from 'lucide-react';
+import { Outlet, useLocation, Link } from 'react-router-dom';
+import { Menu, UserPlus } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar/Sidebar';
 import { SettingsMenu } from '../components/SettingsMenu/SettingsMenu';
 import { MoreMenu } from '../components/MoreMenu/MoreMenu';
@@ -11,6 +11,7 @@ import { Footer } from '../components/Footer/Footer';
 import { useAppStore } from '../stores/appStore';
 import { apiService } from '../services/api';
 import { DashboardSearchContext } from '../contexts/DashboardSearchContext';
+import { AssistantProvider } from '../contexts/AssistantContext';
 import { getDashboardConversions } from '../constants/conversions';
 import { filterConversionsByQuery } from '../utils/searchConversions';
 import './DashboardLayout.css';
@@ -64,37 +65,52 @@ export const DashboardLayout = () => {
         loadUserData();
     }, [token, user, setUser]);
 
+    const isAnonymous = !token;
+
     return (
-        <div className="dashboard-layout">
-            <Sidebar />
-            <main className={`main-content ${sidebarCollapsed ? 'expanded' : ''} ${isAssistantOpen ? 'assistant-open' : ''}`}>
-                <header className="main-header">
-                    <div className="header-left">
-                        <button
-                            className="mobile-menu-toggle"
-                            onClick={toggleSidebar}
-                            aria-label="Alternar menú"
-                        >
-                            <Menu size={24} />
-                        </button>
-                        {isDashboard ? (
-                            <div className="header-search">
-                                <ConversionSearch
-                                    query={searchQuery}
-                                    onQueryChange={setSearchQuery}
-                                    filteredConversions={filteredConversions}
+        <AssistantProvider value={{ isOpen: isAssistantOpen, setOpen: setIsAssistantOpen }}>
+            <div className="dashboard-layout">
+                <Sidebar />
+                <main className={`main-content ${sidebarCollapsed ? 'expanded' : ''} ${isAssistantOpen ? 'assistant-open' : ''}`}>
+                    <header className="main-header">
+                        <div className="header-left">
+                            <button
+                                className="mobile-menu-toggle"
+                                onClick={toggleSidebar}
+                                aria-label="Alternar menú"
+                            >
+                                <Menu size={24} />
+                            </button>
+                            {isDashboard ? (
+                                <div className="header-search">
+                                    <ConversionSearch
+                                        query={searchQuery}
+                                        onQueryChange={setSearchQuery}
+                                        filteredConversions={filteredConversions}
+                                    />
+                                </div>
+                            ) : (
+                                <h1 className="page-title">{getPageTitle(pathname)}</h1>
+                            )}
+                        </div>
+                        <div className="header-right">
+                            {isAnonymous ? (
+                                <Link
+                                    to="/login"
+                                    state={{ mode: 'register' }}
+                                    className="header-register-btn"
+                                    aria-label="Ir a registro"
+                                >
+                                    <UserPlus size={20} strokeWidth={2} />
+                                    <span className="header-register-btn__label">Regístrate</span>
+                                </Link>
+                            ) : (
+                                <AIAssistantTrigger
+                                    onClick={() => setIsAssistantOpen((v) => !v)}
+                                    isOpen={isAssistantOpen}
                                 />
-                            </div>
-                        ) : (
-                            <h1 className="page-title">{getPageTitle(pathname)}</h1>
-                        )}
-                    </div>
-                    <div className="header-right">
-                        <AIAssistantTrigger
-                            onClick={() => setIsAssistantOpen((v) => !v)}
-                            isOpen={isAssistantOpen}
-                        />
-                        <SettingsMenu
+                            )}
+                            <SettingsMenu
                             isOpen={openHeaderMenu === 'settings'}
                             onToggle={() => setOpenHeaderMenu((v) => (v === 'settings' ? null : 'settings'))}
                             onClose={() => setOpenHeaderMenu(null)}
@@ -107,6 +123,14 @@ export const DashboardLayout = () => {
                     </div>
                 </header>
                 <div className="main-below-header">
+                    {isAnonymous && (
+                        <div className="assistant-bar-below-header" aria-label="Asistente IA">
+                            <AIAssistantTrigger
+                                onClick={() => setIsAssistantOpen((v) => !v)}
+                                isOpen={isAssistantOpen}
+                            />
+                        </div>
+                    )}
                     <DashboardSearchContext.Provider value={{ query: searchQuery, setQuery: setSearchQuery }}>
                         <div className="content-area">
                             <Outlet />
@@ -117,5 +141,6 @@ export const DashboardLayout = () => {
             </main>
             <AIAssistantFAB isOpen={isAssistantOpen} onOpenChange={setIsAssistantOpen} />
         </div>
+        </AssistantProvider>
     );
 };

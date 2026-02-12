@@ -117,8 +117,28 @@
     flex-shrink: 0;
 }
 
-.conversion-card:hover .conversion-card__cta {
+.conversion-card:hover .conversion-card__cta:not(:has(.conversion-card__cta-btn)) {
     text-decoration: underline;
+}
+
+/* Botón visual solo para "Convertir" y "Usar" (CTA de acción) */
+.conversion-card__cta-btn {
+    display: inline-block;
+    background-color: #FF8C42;
+    color: #ffffff;
+    padding: 6px 12px;
+    border-radius: var(--radius-md, 8px);
+    text-decoration: none;
+    transition: background-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.conversion-card:hover .conversion-card__cta-btn {
+    text-decoration: none;
+    background-color: #e67a35;
+}
+
+.conversion-card:not(.conversion-card--disabled):hover .conversion-card__cta-btn {
+    transform: scale(1.02);
 }
 
 .conversion-card--disabled {

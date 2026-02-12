@@ -26,13 +26,38 @@
     border: 1px solid var(--color-border-light);
 }
 
+.dashboard-metrics--compact {
+    padding: var(--spacing-lg) var(--spacing-xl);
+}
+
+.dashboard-metrics__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+}
+
+.dashboard-metrics--compact .dashboard-metrics__header {
+    margin-bottom: var(--spacing-md);
+}
+
 .dashboard-metrics__title {
     font-size: var(--font-size-sm);
     font-weight: 600;
     color: var(--color-text-secondary);
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    margin: 0 0 var(--spacing-lg) 0;
+    margin: 0;
+}
+
+.stats-grid--compact {
+    gap: var(--spacing-md);
+}
+
+.dashboard-metrics--compact .stats-grid--compact {
+    gap: var(--spacing-sm);
 }
 
 @keyframes slideUp {
@@ -135,6 +160,16 @@
     gap: var(--spacing-lg);
 }
 
+/* Asegurar naranja en los tres botones de Otras acciones (incl. Ver Historial) */
+.quick-actions-section .action-button {
+    background: #FF8C42;
+    color: white;
+}
+.quick-actions-section .action-button:hover {
+    background: #e67a35;
+    color: white;
+}
+
 .recent-history-section {
     animation: slideUp 0.68s ease-out;
 }
@@ -190,8 +225,18 @@
         gap: var(--spacing-xl);
     }
 
-    .dashboard-metrics {
+    .dashboard-metrics,
+    .dashboard-metrics--compact {
         padding: var(--spacing-lg);
+    }
+
+    .dashboard-metrics__header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .dashboard-metrics__header .ai-assistant-trigger {
+        align-self: flex-start;
     }
 
     .stats-grid,

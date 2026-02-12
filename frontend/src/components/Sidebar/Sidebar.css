@@ -56,16 +56,40 @@
 
 .sidebar-logo {
     display: flex;
-    align-items: center;
+    align-items: baseline;
     gap: var(--spacing-sm);
+    white-space: nowrap;
+    min-width: 0;
+    animation: fadeInLeft 0.3s ease-out;
+}
+
+.sidebar-logo .logo-text {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35em;
+    min-width: 0;
+}
+
+.sidebar-logo .logo-brand {
     font-size: var(--font-size-xl);
     font-weight: 700;
     background: var(--gradient-primary);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
-    white-space: nowrap;
-    animation: fadeInLeft 0.3s ease-out;
+    flex-shrink: 0;
+}
+
+.sidebar-logo .logo-tagline {
+    font-size: var(--font-size-xs);
+    font-weight: 400;
+    color: var(--color-logo-tagline, #6B7280);
+    letter-spacing: 0.02em;
+    flex-shrink: 0;
+}
+
+[data-theme="dark"] .sidebar-logo .logo-tagline {
+    color: var(--color-logo-tagline, rgba(57, 255, 20, 0.7));
 }
 
 @keyframes fadeInLeft {

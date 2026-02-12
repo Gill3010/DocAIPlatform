@@ -10,8 +10,8 @@ module.exports = {
     {
       name: 'backend',
       cwd: '/home/ec2-user/backend',
-      script: '/home/ec2-user/.venv-new/bin/python',
-      args: '-m uvicorn main:app --host 0.0.0.0 --port 5000',
+      script: '/home/ec2-user/backend/venv/bin/python',
+      args: '-m uvicorn main:app --host 0.0.0.0 --port 8000',
       interpreter: 'none',
       env: { NODE_ENV: 'production' },
       error_file: '/home/ec2-user/logs/backend-err.log',

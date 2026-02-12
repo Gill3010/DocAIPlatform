@@ -18,16 +18,16 @@
     color: #FFFFFF;
     cursor: pointer;
     transition: transform var(--transition-fast), box-shadow var(--transition-base), background var(--transition-base), border-color var(--transition-fast);
-    background: var(--gradient-ai);
+    background: #FFA94D;
     box-shadow:
-        0 2px 8px var(--color-ai-shadow, rgba(10, 37, 64, 0.2)),
-        0 0 0 1px rgba(255, 255, 255, 0.12) inset;
+        0 2px 8px rgba(255, 169, 77, 0.4),
+        0 0 0 1px rgba(255, 255, 255, 0.15) inset;
     position: relative;
     white-space: nowrap;
 }
 
 .ai-assistant-trigger:hover {
-    background: var(--gradient-ai-hover, var(--gradient-ai));
+    background: #e69845;
     transform: translateY(-2px);
     box-shadow:
         0 6px 16px var(--color-ai-shadow, rgba(10, 37, 64, 0.3)),
@@ -35,7 +35,7 @@
 }
 
 .ai-assistant-trigger:active {
-    background: var(--gradient-ai-active, var(--gradient-ai));
+    background: #d98a3d;
     transform: translateY(0);
     box-shadow:
         0 2px 6px var(--color-ai-shadow, rgba(10, 37, 64, 0.25)),
@@ -50,7 +50,7 @@
 }
 
 .ai-assistant-trigger--open {
-    background: var(--gradient-ai-hover, var(--gradient-ai));
+    background: #e69845;
     box-shadow:
         0 4px 14px var(--color-ai-shadow, rgba(10, 37, 64, 0.35)),
         0 0 0 1px rgba(255, 255, 255, 0.18) inset;

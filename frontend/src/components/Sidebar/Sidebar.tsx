@@ -64,7 +64,7 @@ export const Sidebar = () => {
 
     const handleLogout = () => {
         logout();
-        navigate('/login');
+        navigate('/dashboard');
     };
 
     const menuItems = [
@@ -91,7 +91,10 @@ export const Sidebar = () => {
                     {!sidebarCollapsed && (
                         <h2 className="sidebar-logo">
                             <span className="logo-icon">✨</span>
-                            DocAI
+                            <span className="logo-text">
+                                <span className="logo-brand">DocAI</span>
+                                <span className="logo-tagline">Platform</span>
+                            </span>
                         </h2>
                     )}
                     <button
