@@ -53,6 +53,7 @@ backend/backend/storage/
 backend/static/uploads/
 
 # Shell / system (no subir a repo)
+.local/
 .bash_history
 .bash_logout
 .bash_profile
