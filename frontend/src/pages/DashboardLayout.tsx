@@ -1,10 +1,9 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet, useLocation, Link } from 'react-router-dom';
 import { Menu, UserPlus } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar/Sidebar';
 import { SettingsMenu } from '../components/SettingsMenu/SettingsMenu';
 import { MoreMenu } from '../components/MoreMenu/MoreMenu';
-import { ConversionSearch } from '../components/ConversionSearch/ConversionSearch';
 import { AIAssistantTrigger } from '../components/AIAssistantTrigger/AIAssistantTrigger';
 import { AIAssistantFAB } from '../components/AIAssistantFAB/AIAssistantFAB';
 import { Footer } from '../components/Footer/Footer';
@@ -12,8 +11,6 @@ import { useAppStore } from '../stores/appStore';
 import { apiService } from '../services/api';
 import { DashboardSearchContext } from '../contexts/DashboardSearchContext';
 import { AssistantProvider } from '../contexts/AssistantContext';
-import { getDashboardConversions } from '../constants/conversions';
-import { filterConversionsByQuery } from '../utils/searchConversions';
 import './DashboardLayout.css';
 
 function getPageTitle(pathname: string): string {
@@ -43,11 +40,6 @@ export const DashboardLayout = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [openHeaderMenu, setOpenHeaderMenu] = useState<'settings' | 'more' | null>(null);
     const [isAssistantOpen, setIsAssistantOpen] = useState(false);
-    const conversionTypes = useMemo(() => getDashboardConversions(), []);
-    const filteredConversions = useMemo(
-        () => filterConversionsByQuery(conversionTypes, searchQuery),
-        [conversionTypes, searchQuery]
-    );
 
     useEffect(() => {
         // If we have a token but no user data, fetch profile (incl. is_superuser, can_access_admin_panel)
@@ -81,15 +73,14 @@ export const DashboardLayout = () => {
                             >
                                 <Menu size={24} />
                             </button>
-                            {isDashboard ? (
-                                <div className="header-search">
-                                    <ConversionSearch
-                                        query={searchQuery}
-                                        onQueryChange={setSearchQuery}
-                                        filteredConversions={filteredConversions}
-                                    />
-                                </div>
-                            ) : (
+                            <Link to="/dashboard" className="header-logo" aria-label="Ir al inicio - DocAI Platform">
+                                <span className="header-logo__icon">✨</span>
+                                <span className="header-logo__text">
+                                    <span className="header-logo__brand">DocAI</span>
+                                    <span className="header-logo__tagline">Platform</span>
+                                </span>
+                            </Link>
+                            {!isDashboard && (
                                 <h1 className="page-title">{getPageTitle(pathname)}</h1>
                             )}
                         </div>

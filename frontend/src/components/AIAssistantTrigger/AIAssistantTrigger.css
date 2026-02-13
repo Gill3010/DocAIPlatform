@@ -1,8 +1,8 @@
 /*
-  Asistente IA – Botón CTA del header
-  • Paleta: --gradient-ai (base), --gradient-ai-hover, --gradient-ai-active.
-  • Cuándo usar este color reforzado: solo para el CTA principal del asistente (un único botón por vista).
-  • No usar para: botones secundarios, enlaces, iconos de toolbar; reservar para este trigger para no romper jerarquía.
+  DocAI – Botón CTA del asistente IA (header / barra inferior)
+  • Gradiente: mezcla de colores del sistema (primario, secundario, info, éxito, CTA).
+  • Mayor jerarquía visual: contraste, elevación y sombra suave.
+  • Solo para este trigger (un único botón por vista) para preservar jerarquía.
 */
 .ai-assistant-trigger {
     display: inline-flex;
@@ -14,52 +14,72 @@
     border-radius: var(--radius-full);
     font-family: var(--font-family);
     font-size: var(--font-size-sm);
-    font-weight: 600;
+    font-weight: 700;
     color: #FFFFFF;
     cursor: pointer;
-    transition: transform var(--transition-fast), box-shadow var(--transition-base), background var(--transition-base), border-color var(--transition-fast);
-    background: #FFA94D;
-    box-shadow:
-        0 2px 8px rgba(255, 169, 77, 0.4),
-        0 0 0 1px rgba(255, 255, 255, 0.15) inset;
+    transition: transform var(--transition-fast), box-shadow var(--transition-base), filter var(--transition-base);
     position: relative;
     white-space: nowrap;
+    letter-spacing: 0.03em;
+    /* Gradiente: mezcla de colores del sistema (primario → secundario → info → éxito → CTA) */
+    background: linear-gradient(
+        135deg,
+        #0A2540 0%,
+        #1F3C88 20%,
+        #4F8CC9 45%,
+        #2ECC71 65%,
+        #6FCF97 80%,
+        #FF8C42 100%
+    );
+    box-shadow:
+        0 4px 12px rgba(10, 37, 64, 0.35),
+        0 2px 4px rgba(0, 0, 0, 0.12),
+        0 0 0 1px rgba(255, 255, 255, 0.2) inset;
 }
 
 .ai-assistant-trigger:hover {
-    background: #e69845;
     transform: translateY(-2px);
+    filter: brightness(1.08);
     box-shadow:
-        0 6px 16px var(--color-ai-shadow, rgba(10, 37, 64, 0.3)),
-        0 0 0 1px rgba(255, 255, 255, 0.15) inset;
+        0 8px 20px rgba(10, 37, 64, 0.4),
+        0 4px 8px rgba(0, 0, 0, 0.15),
+        0 0 0 1px rgba(255, 255, 255, 0.25) inset;
 }
 
 .ai-assistant-trigger:active {
-    background: #d98a3d;
     transform: translateY(0);
+    filter: brightness(0.98);
     box-shadow:
-        0 2px 6px var(--color-ai-shadow, rgba(10, 37, 64, 0.25)),
-        0 0 0 1px rgba(0, 0, 0, 0.08) inset;
+        0 2px 6px rgba(10, 37, 64, 0.3),
+        0 0 0 1px rgba(0, 0, 0, 0.12) inset;
 }
 
 .ai-assistant-trigger:focus-visible {
     outline: none;
     box-shadow:
-        0 0 0 3px var(--color-ai-focus-ring, rgba(10, 37, 64, 0.3)),
-        0 2px 8px var(--color-ai-shadow);
+        0 0 0 3px var(--color-ai-focus-ring, rgba(255, 140, 66, 0.5)),
+        0 4px 12px rgba(10, 37, 64, 0.35);
 }
 
 .ai-assistant-trigger--open {
-    background: #e69845;
+    filter: brightness(1.05);
     box-shadow:
-        0 4px 14px var(--color-ai-shadow, rgba(10, 37, 64, 0.35)),
-        0 0 0 1px rgba(255, 255, 255, 0.18) inset;
+        0 6px 16px rgba(10, 37, 64, 0.4),
+        0 2px 6px rgba(0, 0, 0, 0.15),
+        0 0 0 1px rgba(255, 255, 255, 0.28) inset;
 }
 
 .ai-assistant-trigger:disabled {
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;
+}
+
+.ai-assistant-trigger__sparkle-emoji {
+    font-size: 1rem;
+    line-height: 1;
+    flex-shrink: 0;
+    opacity: 0.95;
 }
 
 .ai-assistant-trigger__icon {
@@ -92,23 +112,34 @@
     border-radius: var(--radius-full);
 }
 
-/* Modo oscuro: borde sutil para que el botón se distinga sin ser llamativo */
+/* Modo oscuro: gradiente con mezcla de colores del tema (azules + verde + naranja CTA) */
 [data-theme="dark"] .ai-assistant-trigger {
+    background: linear-gradient(
+        135deg,
+        #0A2540 0%,
+        #1C2A3A 15%,
+        #1F3C88 35%,
+        #4F8CC9 50%,
+        #39FF14 70%,
+        #FF8C42 100%
+    );
     box-shadow:
-        0 2px 8px var(--color-ai-shadow),
+        0 4px 12px rgba(0, 0, 0, 0.4),
         0 0 0 1px rgba(57, 255, 20, 0.35);
 }
 
 [data-theme="dark"] .ai-assistant-trigger:hover {
+    filter: brightness(1.1);
     box-shadow:
-        0 6px 16px var(--color-ai-shadow),
+        0 8px 20px rgba(0, 0, 0, 0.5),
         0 0 0 1px rgba(57, 255, 20, 0.5);
 }
 
 [data-theme="dark"] .ai-assistant-trigger--open {
+    filter: brightness(1.08);
     box-shadow:
-        0 4px 14px var(--color-ai-shadow),
-        0 0 0 1px rgba(57, 255, 20, 0.45);
+        0 6px 16px rgba(0, 0, 0, 0.45),
+        0 0 0 1px rgba(57, 255, 20, 0.5);
 }
 
 /* Responsive: solo icono en pantallas muy pequeñas para no saturar el header */

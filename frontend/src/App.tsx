@@ -19,6 +19,7 @@ const FormatManuscript = lazy(() => import('./pages/FormatManuscript/FormatManus
 const PdfTools = lazy(() => import('./pages/PdfTools/PdfTools').then(m => ({ default: m.PdfTools })));
 const TermsOfUse = lazy(() => import('./pages/TermsOfUse/TermsOfUse').then(m => ({ default: m.TermsOfUse })));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy/PrivacyPolicy').then(m => ({ default: m.PrivacyPolicy })));
+const DataDeletion = lazy(() => import('./pages/DataDeletion/DataDeletion').then(m => ({ default: m.DataDeletion })));
 const Pricing = lazy(() => import('./pages/Pricing/Pricing').then(m => ({ default: m.Pricing })));
 const Security = lazy(() => import('./pages/Security/Security').then(m => ({ default: m.Security })));
 const Features = lazy(() => import('./pages/Features/Features').then(m => ({ default: m.Features })));
@@ -107,6 +108,7 @@ function App() {
             <Route path="format-manuscript" element={<FormatManuscript />} />
             <Route path="terms-of-use" element={<TermsOfUse />} />
             <Route path="privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="data-deletion" element={<DataDeletion />} />
             <Route path="pricing" element={<Pricing />} />
             <Route path="security" element={<Security />} />
             <Route path="features" element={<Features />} />

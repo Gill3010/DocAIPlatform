@@ -78,6 +78,14 @@
     gap: var(--spacing-lg);
 }
 
+.dashboard-search-section {
+    max-width: 640px;
+}
+
+.dashboard-search-section .conversion-search {
+    margin-bottom: 0;
+}
+
 .conversions-section {
     animation: slideUp 0.65s ease-out;
 }

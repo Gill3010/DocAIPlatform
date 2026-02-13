@@ -98,10 +98,10 @@ export const Collaboration = () => {
         // Create a new Y.Doc for this session
         const newYdoc = new Y.Doc();
         
-        // Connect directly to the collaboration server on port 3001
-        // The port is open in AWS Security Group
+        // Usar proxy /collab del backend (pasa por nginx -> backend -> puerto 3001)
+        // Con dominio funciona por 80/443 sin exponer 3001
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.hostname}:3001`;
+        const wsUrl = `${protocol}//${window.location.host}/collab`;
 
         // Use standard y-websocket
         const wsProvider = new WebsocketProvider(wsUrl, `doc_${id}`, newYdoc, {

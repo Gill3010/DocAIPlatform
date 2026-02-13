@@ -17,7 +17,7 @@ logger = get_logger(__name__)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI): 
     setup_logging(settings.LOG_LEVEL)
     logger.info("Application starting")
     if settings.SECRET_KEY == "your-super-secret-key-change-in-production":
@@ -94,7 +94,7 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
     )
 
 
-# CORS configuration: mismos orígenes que el frontend (localhost + IP pública)
+# CORS configuration: mismos orígenes que el frontend (localhost + IP + dominio)
 import os
 _cors_origins = [
     "http://localhost:5173",
@@ -103,19 +103,23 @@ _cors_origins = [
     "http://127.0.0.1:5173",
     "http://127.0.0.1:5174",
     "http://127.0.0.1:8000",
+    "https://docaiplatform.com",
+    "https://www.docaiplatform.com",
+    "http://docaiplatform.com",
+    "http://www.docaiplatform.com",
 ]
 # Añadir IP pública si está definida (p. ej. en EC2)
-_public_host = os.environ.get("PUBLIC_HOST", "3.129.43.75").strip()
+_public_host = os.environ.get("PUBLIC_HOST", "18.119.238.33").strip()
 if _public_host:
     _cors_origins.extend([
         f"http://{_public_host}:5173",
         f"http://{_public_host}:5174",
-        f"http://{_public_host}:8000",  # Añadir puerto 8000 para la IP pública también
+        f"http://{_public_host}:8000",
     ])
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
-    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1|[\d.]+)(:\d+)?/?$",
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1|[\d.]+|(www\.)?docaiplatform\.com)(:\d+)?/?$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

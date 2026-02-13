@@ -16,6 +16,11 @@
   --color-border: #F2F2F2;
   --color-border-light: #F2F2F2;
 
+  /* Buscador: contraste mejorado */
+  --color-search-border: #D1D5DB;
+  --color-search-border-hover: #9CA3AF;
+  --color-search-shadow: 0 1px 3px rgba(10, 37, 64, 0.08);
+
   /* Color primario: Azul oscuro clásico para navegación y títulos */
   --color-primary: #0A2540;
   --color-primary-hover: #1C2A3A;
@@ -142,6 +147,11 @@
   /* Bordes visibles sobre fondo oscuro */
   --color-border: rgba(57, 255, 20, 0.25);
   --color-border-light: rgba(57, 255, 20, 0.15);
+
+  /* Buscador en modo oscuro */
+  --color-search-border: rgba(57, 255, 20, 0.35);
+  --color-search-border-hover: rgba(57, 255, 20, 0.5);
+  --color-search-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 
   --shadow-sm: none;
   --shadow-md: none;

@@ -8,6 +8,7 @@ import { MiniSuccessRateChart } from '../../components/MiniSuccessRateChart/Mini
 import { MiniCreditsChart } from '../../components/MiniCreditsChart/MiniCreditsChart';
 import { QuickActionCard } from '../../components/QuickActionCard/QuickActionCard';
 import { ConversionCard } from '../../components/ConversionCard/ConversionCard';
+import { ConversionSearch } from '../../components/ConversionSearch/ConversionSearch';
 import { apiService } from '../../services/api';
 import {
     getDashboardConversions,
@@ -174,7 +175,7 @@ export const Dashboard = () => {
     };
 
     const conversionTypes = useMemo(() => getDashboardConversions(), []);
-    const { query: searchQuery } = useDashboardSearch();
+    const { query: searchQuery, setQuery: setSearchQuery } = useDashboardSearch();
     const filteredConversions = useMemo(
         () => filterConversionsByQuery(conversionTypes, searchQuery),
         [conversionTypes, searchQuery]
@@ -256,6 +257,14 @@ export const Dashboard = () => {
                         <StatsCard {...stats[3]} compact />
                     </div>
                 </div>
+            </section>
+
+            <section className="dashboard-search-section">
+                <ConversionSearch
+                    query={searchQuery}
+                    onQueryChange={setSearchQuery}
+                    filteredConversions={filteredConversions}
+                />
             </section>
 
             <section className="conversions-section">

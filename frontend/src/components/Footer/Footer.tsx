@@ -25,6 +25,10 @@ export const Footer = () => {
                     <Link to="/privacy-policy" className="footer-link">
                         Política de privacidad
                     </Link>
+                    <span className="footer-separator" aria-hidden="true">·</span>
+                    <Link to="/data-deletion" className="footer-link">
+                        Eliminación de datos
+                    </Link>
                 </nav>
             </div>
         </footer>

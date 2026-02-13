@@ -71,6 +71,53 @@
     margin-bottom: 0;
 }
 
+/* Header logo: misma línea gráfica que el sidebar (DocAI Platform) */
+.header-logo {
+    display: flex;
+    align-items: baseline;
+    gap: var(--spacing-sm);
+    flex-shrink: 0;
+    text-decoration: none;
+    transition: opacity var(--transition-fast);
+}
+
+.header-logo:hover {
+    opacity: 0.9;
+}
+
+.header-logo__icon {
+    font-size: var(--font-size-xl);
+    flex-shrink: 0;
+}
+
+.header-logo__text {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.35em;
+    flex-shrink: 0;
+}
+
+.header-logo__brand {
+    font-size: var(--font-size-lg);
+    font-weight: 700;
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    letter-spacing: -0.02em;
+}
+
+.header-logo__tagline {
+    font-size: var(--font-size-xs);
+    font-weight: 400;
+    color: var(--color-logo-tagline, #6B7280);
+    letter-spacing: 0.02em;
+}
+
+[data-theme="dark"] .header-logo__tagline {
+    color: var(--color-logo-tagline, rgba(57, 255, 20, 0.7));
+}
+
 .mobile-menu-toggle {
     display: none;
     align-items: center;
@@ -190,7 +237,7 @@
     padding-top: var(--header-height);
 }
 
-/* Bar below header: "Preguntar al asistente" for anonymous users only (logged-in see it in header) */
+/* Bar below header: DocAI trigger for anonymous users only (logged-in see it in header) */
 .assistant-bar-below-header {
     flex-shrink: 0;
     display: flex;
