@@ -152,12 +152,6 @@
     flex-shrink: 0;
 }
 
-.page-title {
-    font-size: var(--font-size-2xl);
-    font-weight: 600;
-    color: var(--color-text-primary);
-}
-
 .header-right {
     display: flex;
     align-items: center;
@@ -318,10 +312,6 @@
         flex-shrink: 0;
     }
 
-    .page-title {
-        font-size: var(--font-size-xl);
-    }
-
     .content-area {
         padding: var(--spacing-md);
     }
@@ -332,10 +322,6 @@
 }
 
 @media (max-width: 480px) {
-    .page-title {
-        font-size: var(--font-size-lg);
-    }
-
     .header-left {
         gap: var(--spacing-md);
     }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Outlet, useLocation, Link } from 'react-router-dom';
+import { Outlet, Link } from 'react-router-dom';
 import { Menu, UserPlus } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar/Sidebar';
 import { SettingsMenu } from '../components/SettingsMenu/SettingsMenu';
@@ -13,29 +13,8 @@ import { DashboardSearchContext } from '../contexts/DashboardSearchContext';
 import { AssistantProvider } from '../contexts/AssistantContext';
 import './DashboardLayout.css';
 
-function getPageTitle(pathname: string): string {
-    const titles: Record<string, string> = {
-        '/convert': 'Convertir',
-        '/history': 'Historial',
-        '/format-manuscript': 'Formatear manuscrito',
-        '/terms-of-use': 'Términos de uso',
-        '/privacy-policy': 'Política de privacidad',
-        '/pdf-tools': 'Herramientas PDF',
-        '/pricing': 'Precios',
-        '/security': 'Seguridad',
-        '/features': 'Características',
-        '/about': 'Nosotros',
-        '/settings': 'Mi perfil',
-        '/documents': 'Mis Documentos'
-    };
-    return titles[pathname] ?? 'Inicio';
-}
-
 export const DashboardLayout = () => {
     const { sidebarCollapsed, toggleSidebar, user, token, setUser } = useAppStore();
-    const location = useLocation();
-    const pathname = location.pathname;
-    const isDashboard = pathname === '/dashboard' || pathname === '/';
 
     const [searchQuery, setSearchQuery] = useState('');
     const [openHeaderMenu, setOpenHeaderMenu] = useState<'settings' | 'more' | null>(null);
@@ -80,9 +59,6 @@ export const DashboardLayout = () => {
                                     <span className="header-logo__tagline">Platform</span>
                                 </span>
                             </Link>
-                            {!isDashboard && (
-                                <h1 className="page-title">{getPageTitle(pathname)}</h1>
-                            )}
                         </div>
                         <div className="header-right">
                             {isAnonymous ? (

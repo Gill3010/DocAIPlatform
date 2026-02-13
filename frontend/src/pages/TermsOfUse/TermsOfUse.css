@@ -40,3 +40,31 @@
 .legal-page-back:hover {
     color: var(--color-primary-hover);
 }
+
+.legal-page-section {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin: var(--spacing-xl) 0 var(--spacing-md);
+}
+
+.legal-page-list {
+    font-size: var(--font-size-base);
+    color: var(--color-text-secondary);
+    line-height: 1.8;
+    margin-bottom: var(--spacing-lg);
+    padding-left: 1.5rem;
+}
+
+.legal-page-list li {
+    margin-bottom: var(--spacing-md);
+}
+
+.legal-page-list a {
+    color: var(--color-primary);
+    text-decoration: none;
+}
+
+.legal-page-list a:hover {
+    text-decoration: underline;
+}
