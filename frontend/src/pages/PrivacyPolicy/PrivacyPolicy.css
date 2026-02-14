@@ -1,6 +1,6 @@
 .legal-page {
-    max-width: 720px;
-    margin: 0 auto;
+    width: 100%;
+    max-width: none;
     animation: fadeIn 0.5s ease-in-out;
 }
 

@@ -61,6 +61,7 @@
     white-space: nowrap;
     min-width: 0;
     animation: fadeInLeft 0.3s ease-out;
+    margin-left: -6px;
 }
 
 .sidebar-logo .logo-text {
