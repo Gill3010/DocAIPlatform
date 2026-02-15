@@ -8,6 +8,9 @@ export async function login(credentials: LoginCredentials): Promise<AuthToken> {
     const formData = new URLSearchParams();
     formData.append('username', credentials.username);
     formData.append('password', credentials.password);
+    if (credentials.turnstile_token) {
+        formData.append('turnstile_token', credentials.turnstile_token);
+    }
     const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -48,7 +51,15 @@ export async function facebookAuth(data: { code: string; state: string; redirect
 }
 
 export async function register(data: RegisterData): Promise<User> {
-    return apiRequest<User>('/auth/register', { method: 'POST', body: JSON.stringify(data) });
+    const body: Record<string, unknown> = {
+        email: data.email,
+        password: data.password,
+        full_name: data.full_name ?? '',
+    };
+    if (data.turnstile_token) {
+        body.turnstile_token = data.turnstile_token;
+    }
+    return apiRequest<User>('/auth/register', { method: 'POST', body: JSON.stringify(body) });
 }
 
 export async function linkAnonymousSession(anonymousSessionId: string): Promise<{ credits_used: number; credits_remaining: number }> {

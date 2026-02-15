@@ -126,6 +126,45 @@ app.add_middleware(
     expose_headers=["X-Credits-Remaining"],
 )
 
+# WebSocket proxy - use /ws/collab/ to avoid conflict with SPA route /collab/:id
+@app.websocket("/ws/collab/{doc_name:path}")
+async def websocket_proxy(websocket: WebSocket, doc_name: str):
+    """
+    Proxy WebSocket connections to the collaboration server
+    """
+    await websocket.accept()
+    collab_url = f"ws://localhost:3001/{doc_name}"
+    token = websocket.query_params.get('token')
+    if token:
+        collab_url += f"?token={token}"
+    try:
+        import websockets
+        async with websockets.connect(collab_url) as collab_ws:
+            async def forward_to_collab():
+                try:
+                    while True:
+                        data = await websocket.receive_bytes()
+                        await collab_ws.send(data)
+                except WebSocketDisconnect:
+                    pass
+
+            async def forward_to_client():
+                try:
+                    async for message in collab_ws:
+                        if isinstance(message, bytes):
+                            await websocket.send_bytes(message)
+                        else:
+                            await websocket.send_text(message)
+                except Exception:
+                    pass
+
+            import asyncio
+            await asyncio.gather(forward_to_collab(), forward_to_client())
+    except Exception as e:
+        logger.warning("WebSocket proxy error: %s", e)
+    finally:
+        await websocket.close()
+
 # API Routers
 app.include_router(auth.router, prefix=f"{settings.API_V1_STR}/auth", tags=["auth"])
 app.include_router(convert.router, prefix=f"{settings.API_V1_STR}/convert", tags=["convert"])
@@ -149,53 +188,6 @@ app.mount("/static", StaticFiles(directory=str(static_root)), name="static")
 )
 async def health_check():
     return {"status": "healthy"}
-
-# WebSocket proxy to collaboration server
-@app.websocket("/collab/{doc_name:path}")
-async def websocket_proxy(websocket: WebSocket, doc_name: str):
-    """
-    Proxy WebSocket connections to the collaboration server
-    This avoids CORS issues and keeps everything on port 8000
-    """
-    await websocket.accept()
-    
-    # Build the collaboration server URL
-    collab_url = f"ws://localhost:3001/{doc_name}"
-    
-    # Get token from query params if provided
-    token = websocket.query_params.get('token')
-    if token:
-        collab_url += f"?token={token}"
-    
-    try:
-        import websockets
-        async with websockets.connect(collab_url) as collab_ws:
-            # Forward messages bidirectionally
-            async def forward_to_collab():
-                try:
-                    while True:
-                        data = await websocket.receive_bytes()
-                        await collab_ws.send(data)
-                except WebSocketDisconnect:
-                    pass
-            
-            async def forward_to_client():
-                try:
-                    async for message in collab_ws:
-                        if isinstance(message, bytes):
-                            await websocket.send_bytes(message)
-                        else:
-                            await websocket.send_text(message)
-                except Exception:
-                    pass
-            
-            # Run both directions concurrently
-            import asyncio
-            await asyncio.gather(forward_to_collab(), forward_to_client())
-    except Exception as e:
-        logger.warning("WebSocket proxy error: %s", e)
-    finally:
-        await websocket.close()
 
 # Frontend serving logic
 frontend_dist = Path(__file__).resolve().parent.parent / "frontend" / "dist"

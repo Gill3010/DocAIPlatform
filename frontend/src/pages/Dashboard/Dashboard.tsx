@@ -3,11 +3,10 @@ import { BarChart3, Clock, CheckCircle, Zap, History, FileEdit, FileText } from 
 import { Link } from 'react-router-dom';
 import { useAppStore } from '../../stores/appStore';
 import { useAnonymousSession } from '../../hooks/useAnonymousSession';
-import { StatsCard } from '../../components/StatsCard/StatsCard';
-import { MiniSuccessRateChart } from '../../components/MiniSuccessRateChart/MiniSuccessRateChart';
-import { MiniCreditsChart } from '../../components/MiniCreditsChart/MiniCreditsChart';
+
 import { QuickActionCard } from '../../components/QuickActionCard/QuickActionCard';
 import { ConversionCard } from '../../components/ConversionCard/ConversionCard';
+import { MetricsSummary } from '../../components/MetricsSummary/MetricsSummary';
 import { ConversionSearch } from '../../components/ConversionSearch/ConversionSearch';
 import { apiService } from '../../services/api';
 import {
@@ -235,28 +234,7 @@ export const Dashboard = () => {
                         Tu resumen
                     </h2>
                 </div>
-                <div className="stats-grid stats-grid--compact" role="list">
-                    <div key="conversions" role="listitem">
-                        <StatsCard {...stats[0]} compact />
-                    </div>
-                    <div key="credits" role="listitem">
-                        <MiniCreditsChart
-                            remaining={chartData.creditsRemaining}
-                            total={chartData.creditsTotal || 1}
-                            unlimited={chartData.creditsUnlimited}
-                            label={stats[1].label}
-                        />
-                    </div>
-                    <div key="success" role="listitem">
-                        <MiniSuccessRateChart
-                            value={chartData.successRate}
-                            label={stats[2].label}
-                        />
-                    </div>
-                    <div key="time" role="listitem">
-                        <StatsCard {...stats[3]} compact />
-                    </div>
-                </div>
+                <MetricsSummary stats={stats} chartData={chartData} />
             </section>
 
             <section className="dashboard-search-section">

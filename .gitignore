@@ -26,6 +26,8 @@ dist/
 .idea/
 .cursor/
 .cursor-server/
+.antigravity-server/
+.gemini/
 .npm/
 *.swp
 *.swo
@@ -44,6 +46,7 @@ npm-debug.log*
 
 # Database
 *.db
+*.db.backup
 *.sqlite
 *.sqlite3
 

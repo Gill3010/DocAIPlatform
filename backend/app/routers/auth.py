@@ -8,7 +8,7 @@ import urllib.parse
 from datetime import timedelta
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt, JWTError
 from sqlalchemy import select
@@ -16,6 +16,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.core.database import get_db
+from app.core.turnstile import verify_turnstile_token
 from app.core.security import (
     create_access_token,
     get_password_hash,
@@ -56,14 +57,24 @@ FACEBOOK_SCOPES = "email,public_profile"
     "/register",
     response_model=UserResponse,
     summary="Registrar usuario",
-    description="Crea una cuenta con email y contraseña. El usuario queda activo y puede hacer login.",
+    description="Crea una cuenta con email y contraseña. El usuario queda activo y puede hacer login. Requiere token Turnstile si está configurado.",
     responses={
         200: {"description": "Usuario creado correctamente"},
-        400: {"description": "Email ya registrado o datos inválidos"},
+        400: {"description": "Email ya registrado, datos inválidos o verificación Turnstile fallida"},
         422: {"description": "Error de validación (formato email, longitud contraseña, etc.)"},
     },
 )
-async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
+async def register(
+    user: UserCreate,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    if settings.TURNSTILE_SECRET_KEY:
+        if not user.turnstile_token:
+            raise HTTPException(status_code=400, detail="Verificación de seguridad requerida. Completa el captcha.")
+        remote_ip = request.client.host if request.client else None
+        if not await verify_turnstile_token(user.turnstile_token, remote_ip):
+            raise HTTPException(status_code=400, detail="Verificación de seguridad fallida. Intenta de nuevo.")
     return await svc_register_user(
         db, email=user.email, password=user.password, full_name=user.full_name
     )
@@ -72,14 +83,26 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
     "/login",
     response_model=Token,
     summary="Login con email y contraseña",
-    description="Autenticación con `username` (email) y `password`. Devuelve un JWT en `access_token`. Usar en header: `Authorization: Bearer <token>`.",
+    description="Autenticación con `username` (email) y `password`. Devuelve un JWT en `access_token`. Requiere token Turnstile si está configurado.",
     responses={
         200: {"description": "Token JWT generado correctamente"},
-        401: {"description": "Credenciales inválidas (Could not validate credentials)"},
-        422: {"description": "Formato de body incorrecto (username/password requeridos)"},
+        400: {"description": "Verificación Turnstile fallida"},
+        401: {"description": "Credenciales inválidas"},
+        422: {"description": "Formato de body incorrecto"},
     },
 )
-async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db)):
+async def login(
+    request: Request,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    turnstile_token: Optional[str] = Form(None),
+    db: AsyncSession = Depends(get_db),
+):
+    if settings.TURNSTILE_SECRET_KEY:
+        if not turnstile_token:
+            raise HTTPException(status_code=400, detail="Verificación de seguridad requerida. Completa el captcha.")
+        remote_ip = request.client.host if request.client else None
+        if not await verify_turnstile_token(turnstile_token, remote_ip):
+            raise HTTPException(status_code=400, detail="Verificación de seguridad fallida. Intenta de nuevo.")
     access_token, token_type = await svc_authenticate_user(
         db, email=form_data.username, password=form_data.password
     )

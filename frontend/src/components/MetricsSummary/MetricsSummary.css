@@ -1,0 +1,104 @@
+.metrics-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    width: 100%;
+}
+
+.metric-widget {
+    background: var(--color-bg-secondary);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border: 1px solid var(--color-border);
+}
+
+.metric-widget:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.metric-widget__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.metric-widget__title {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+    font-weight: 500;
+    margin: 0;
+}
+
+.metric-widget__icon {
+    opacity: 0.7;
+}
+
+.metric-widget__content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+}
+
+.metric-widget__value {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    line-height: 1.2;
+}
+
+.metric-widget__subtext {
+    font-size: 0.875rem;
+    color: var(--color-text-tertiary);
+    margin-top: 0.5rem;
+}
+
+/* Specific widget styles */
+.metric-widget--primary {
+    background: linear-gradient(135deg, var(--color-bg-secondary) 0%, rgba(var(--color-primary-rgb), 0.05) 100%);
+    border-left: 4px solid var(--color-primary);
+}
+
+.metric-widget--chart {
+    align-items: center;
+    text-align: center;
+}
+
+.metric-widget__chart-container {
+    height: 120px;
+    width: 100%;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.chart-center-label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    pointer-events: none;
+}
+
+.chart-center-value {
+    display: block;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+}
+
+.chart-center-sub {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--color-text-tertiary);
+}

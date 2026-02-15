@@ -19,12 +19,14 @@ export interface ProfileUpdate {
 export interface LoginCredentials {
     username: string;
     password: string;
+    turnstile_token?: string | null;
 }
 
 export interface RegisterData {
     email: string;
     password: string;
     full_name?: string;
+    turnstile_token?: string | null;
 }
 
 export interface AuthToken {

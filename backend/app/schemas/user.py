@@ -7,6 +7,7 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+    turnstile_token: Optional[str] = None  # Para Cloudflare Turnstile (registro)
 
 class UserUpdate(BaseModel):
     """Solo campos editables en perfil. Email no se cambia por seguridad."""

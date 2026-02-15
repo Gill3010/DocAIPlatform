@@ -98,10 +98,11 @@ export const Collaboration = () => {
         // Create a new Y.Doc for this session
         const newYdoc = new Y.Doc();
         
-        // Usar proxy /collab del backend (pasa por nginx -> backend -> puerto 3001)
-        // Con dominio funciona por 80/443 sin exponer 3001
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsUrl = `${protocol}//${window.location.host}/collab`;
+        // Desarrollo: conectar directo al collab (3001). Producción: nginx proxy /ws/collab
+        const isDev = /^localhost$|^127\.0\.0\.1$/.test(window.location.hostname);
+        const wsUrl = isDev
+            ? 'ws://localhost:3001'
+            : `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/collab`;
 
         // Use standard y-websocket
         const wsProvider = new WebsocketProvider(wsUrl, `doc_${id}`, newYdoc, {

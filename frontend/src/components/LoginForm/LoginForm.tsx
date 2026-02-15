@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Eye, EyeOff, LogIn, UserPlus } from 'lucide-react';
@@ -41,6 +41,8 @@ const GoogleIcon = () => (
 );
 
 const PASSWORD_REQUIREMENTS = ['Mínimo 8 caracteres', 'Al menos una letra'];
+
+const TURNSTILE_SITE_KEY = typeof import.meta !== 'undefined' ? (import.meta.env?.VITE_TURNSTILE_SITE_KEY as string | undefined) : undefined;
 
 export interface LoginFormProps {
     /** 'login' | 'register' */
@@ -87,6 +89,9 @@ export const LoginForm = ({
     const [facebookAvailable, setFacebookAvailable] = useState<boolean | null>(null);
 
     const [confirmPasswordTouched, setConfirmPasswordTouched] = useState(false);
+    const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+    const turnstileContainerRef = useRef<HTMLDivElement>(null);
+    const turnstileWidgetIdRef = useRef<string | null>(null);
 
     const passwordsMatch = confirmPassword === password;
     const showPasswordMatchError = !isLogin && confirmPasswordTouched && confirmPassword.length > 0 && !passwordsMatch;
@@ -154,8 +159,49 @@ export const LoginForm = ({
         setShowPassword(false);
         setShowConfirmPassword(false);
         setConfirmPasswordTouched(false);
+        setTurnstileToken(null);
+        if (TURNSTILE_SITE_KEY && turnstileWidgetIdRef.current != null && typeof window !== 'undefined' && (window as Window & { turnstile?: { reset: (id: string) => void } }).turnstile) {
+            (window as Window & { turnstile: { reset: (id: string) => void } }).turnstile.reset(turnstileWidgetIdRef.current);
+        }
         onModeChange?.(next);
     };
+
+    useEffect(() => {
+        if (!TURNSTILE_SITE_KEY) return;
+
+        const renderTurnstile = (): boolean => {
+            const win = window as Window & { turnstile?: { render: (el: HTMLElement, opts: Record<string, unknown>) => string } };
+            if (!win.turnstile || !turnstileContainerRef.current) return false;
+            const widgetId = win.turnstile.render(turnstileContainerRef.current, {
+                sitekey: TURNSTILE_SITE_KEY,
+                callback: (token: string) => setTurnstileToken(token),
+                'expired-callback': () => setTurnstileToken(null),
+                'error-callback': () => setTurnstileToken(null),
+            });
+            turnstileWidgetIdRef.current = widgetId;
+            return true;
+        };
+
+        let intervalId: ReturnType<typeof setInterval> | null = null;
+        if ((window as Window & { turnstile?: unknown }).turnstile) {
+            renderTurnstile();
+        } else {
+            intervalId = window.setInterval(() => {
+                if (renderTurnstile()) {
+                    if (intervalId) window.clearInterval(intervalId);
+                }
+            }, 50);
+        }
+
+        return () => {
+            if (intervalId) window.clearInterval(intervalId);
+            if (turnstileWidgetIdRef.current != null) {
+                const win = window as Window & { turnstile?: { remove: (id: string) => void } };
+                if (win.turnstile) win.turnstile.remove(turnstileWidgetIdRef.current!);
+                turnstileWidgetIdRef.current = null;
+            }
+        };
+    }, []);
 
     const completeLogin = async () => {
         if (sessionId) {
@@ -191,15 +237,22 @@ export const LoginForm = ({
             return;
         }
 
+        if (TURNSTILE_SITE_KEY && !turnstileToken) {
+            setError('Por favor, verifica que eres humano (captcha) antes de continuar.');
+            setLoading(false);
+            return;
+        }
+
         try {
+            const turnstile = turnstileToken || undefined;
             if (isLogin) {
-                const response = await apiService.login({ username: email, password });
+                const response = await apiService.login({ username: email, password, turnstile_token: turnstile });
                 setToken(response.access_token);
                 setStorageToken(response.access_token);
                 await completeLogin();
             } else {
-                await apiService.register({ email, password, full_name: fullName });
-                const response = await apiService.login({ username: email, password });
+                await apiService.register({ email, password, full_name: fullName, turnstile_token: turnstile });
+                const response = await apiService.login({ username: email, password, turnstile_token: turnstile });
                 setToken(response.access_token);
                 setStorageToken(response.access_token);
                 await completeLogin();
@@ -213,6 +266,10 @@ export const LoginForm = ({
                       ? 'Email o contraseña incorrectos. Verifica tus credenciales.'
                       : message
             );
+            setTurnstileToken(null);
+            if (TURNSTILE_SITE_KEY && turnstileWidgetIdRef.current != null && typeof window !== 'undefined' && (window as Window & { turnstile?: { reset: (id: string) => void } }).turnstile) {
+                (window as Window & { turnstile: { reset: (id: string) => void } }).turnstile.reset(turnstileWidgetIdRef.current);
+            }
         } finally {
             setLoading(false);
         }
@@ -385,10 +442,16 @@ export const LoginForm = ({
                     </>
                 )}
 
+                {TURNSTILE_SITE_KEY && (
+                    <div className="form-group turnstile-container">
+                        <div ref={turnstileContainerRef} id={`${idPrefix}-turnstile`} aria-label="Verificación de seguridad" />
+                    </div>
+                )}
+
                 <button
                     type="submit"
                     className="btn-primary"
-                    disabled={loading || (!isLogin && confirmPassword.length > 0 && !passwordsMatch)}
+                    disabled={loading || (!isLogin && confirmPassword.length > 0 && !passwordsMatch) || (!!TURNSTILE_SITE_KEY && !turnstileToken)}
                 >
                     {loading ? 'Por favor espera...' : isLogin ? 'Iniciar sesión' : 'Crear cuenta'}
                 </button>

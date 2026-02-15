@@ -17,7 +17,6 @@ export const AIAssistantTrigger = ({ onClick, isOpen = false, badge }: AIAssista
             aria-label="Abrir asistente de IA"
             aria-expanded={isOpen}
         >
-            <span className="ai-assistant-trigger__sparkle-emoji" aria-hidden>✨</span>
             <span className="ai-assistant-trigger__icon" aria-hidden>
                 <MessageCircle size={20} strokeWidth={2} />
                 <Sparkles size={12} className="ai-assistant-trigger__sparkle" aria-hidden />

@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     FACEBOOK_APP_ID: str = ""
     FACEBOOK_APP_SECRET: str = ""
 
+    # Cloudflare Turnstile (CAPTCHA)
+    TURNSTILE_SECRET_KEY: str = ""
+
     # Admin: emails que siempre se consideran superadmin (separados por coma)
     SUPERADMIN_EMAILS: str = ""
 
