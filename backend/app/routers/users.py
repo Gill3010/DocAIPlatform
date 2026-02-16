@@ -238,12 +238,12 @@ async def get_user_stats(
     if total_conversions > 0:
         success_rate = round((completed_conversions / total_conversions) * 100, 1)
     
-    # Credits remaining
-    is_premium = getattr(current_user, "is_premium", False) or getattr(current_user, "is_superuser", False)
+    # Credits remaining (admin panel users have unlimited like Pro/Empresa)
+    is_premium = getattr(current_user, "is_premium", False) or getattr(current_user, "is_superuser", False) or getattr(current_user, "can_access_admin_panel", False)
     plan_id = getattr(current_user, "premium_plan_id", None)
 
     if is_premium:
-        if plan_id == 'Básico':
+        if plan_id == 'Básico' and not getattr(current_user, "can_access_admin_panel", False):
             free_tier_limit = 50
             credits_used = getattr(current_user, "monthly_conversion_count", 0)
             credits_remaining = max(0, 50 - credits_used)

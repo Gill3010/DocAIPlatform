@@ -65,8 +65,8 @@ async def check_user_can_convert(
             await db.commit()
             await db.refresh(user)
 
-    # 2. Check Limits
-    if getattr(user, "is_superuser", False):
+    # 2. Check Limits (superuser and admin panel users have unlimited conversions)
+    if getattr(user, "is_superuser", False) or getattr(user, "can_access_admin_panel", False):
         return user
 
     if user.is_premium:
@@ -104,7 +104,7 @@ def increment_user_conversion_count(
     is_superuser: bool = False,
 ) -> None:
     """Increment conversion count on user (in-memory). Caller must commit."""
-    if is_superuser:
+    if is_superuser or getattr(user, "can_access_admin_panel", False):
         return
 
     if getattr(user, "is_premium", False):
@@ -115,7 +115,7 @@ def increment_user_conversion_count(
 
 def credits_remaining_for_user(user: User) -> int:
     """Return remaining credits for response."""
-    if getattr(user, "is_superuser", False) or user.premium_plan_id in ['Pro', 'Empresa']:
+    if getattr(user, "is_superuser", False) or getattr(user, "can_access_admin_panel", False) or user.premium_plan_id in ['Pro', 'Empresa']:
         return 999999
     
     if user.premium_plan_id == 'Básico':
@@ -165,7 +165,8 @@ async def consume_credit_for_operation(
     if is_anonymous:
         entity.conversions_count += 1
     else:
-        increment_user_conversion_count(entity, is_superuser=getattr(entity, "is_superuser", False))
+        exempt = getattr(entity, "is_superuser", False) or getattr(entity, "can_access_admin_panel", False)
+        increment_user_conversion_count(entity, is_superuser=exempt)
     await db.commit()
     await db.refresh(entity)
 
@@ -179,6 +180,6 @@ def check_premium_format_access(
     Premium formats are restricted to premium users.
     """
     if target_format.lower() in settings.PREMIUM_FORMATS:
-        is_premium = getattr(entity, "is_premium", False) or getattr(entity, "is_superuser", False)
+        is_premium = getattr(entity, "is_premium", False) or getattr(entity, "is_superuser", False) or getattr(entity, "can_access_admin_panel", False)
         if not is_premium:
             raise PremiumFormatRequired()

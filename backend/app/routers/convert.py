@@ -171,7 +171,8 @@ async def upload_and_convert(
             conversion.status = "completed"
             conversion.completed_at = datetime.now()
             
-            increment_user_conversion_count(db_user, is_superuser=getattr(db_user, "is_superuser", False))
+            exempt = getattr(db_user, "is_superuser", False) or getattr(db_user, "can_access_admin_panel", False)
+            increment_user_conversion_count(db_user, is_superuser=exempt)
             await db.commit()
             
         except ConversionError as e:
@@ -425,8 +426,9 @@ async def get_conversion_history(
     if not getattr(current_user, "is_superuser", False):
         # Por defecto 30 días para Gratuito y Básico
         days = 30
-        if current_user.is_premium and current_user.premium_plan_id in ['Pro', 'Empresa']:
-            # 1 año para Pro y Empresa
+        if getattr(current_user, "can_access_admin_panel", False):
+            days = 365
+        elif current_user.is_premium and current_user.premium_plan_id in ['Pro', 'Empresa']:
             days = 365
             
         since_date = datetime.now() - timedelta(days=days)

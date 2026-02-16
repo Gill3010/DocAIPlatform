@@ -57,7 +57,7 @@ async def check_ai_can_send(
         user = result.scalar_one_or_none()
         if not user:
             raise UserNotFound("User not found")
-        is_limit_exempt = getattr(user, "is_superuser", False) or getattr(user, "is_premium", False)
+        is_limit_exempt = getattr(user, "is_superuser", False) or getattr(user, "is_premium", False) or getattr(user, "can_access_admin_panel", False)
         if not is_limit_exempt and (user.free_conversion_count or 0) >= settings.FREE_TIER_AI_CREDITS:
             raise AICreditsExhausted()
         return (user, False)
@@ -80,7 +80,7 @@ async def consume_ai_credit(
         await db.commit()
         await db.refresh(entity)
         return max(0, settings.ANONYMOUS_AI_LIMIT - entity.conversions_count)
-    is_limit_exempt = getattr(entity, "is_superuser", False) or getattr(entity, "is_premium", False)
+    is_limit_exempt = getattr(entity, "is_superuser", False) or getattr(entity, "is_premium", False) or getattr(entity, "can_access_admin_panel", False)
     if not is_limit_exempt:
         entity.free_conversion_count = (entity.free_conversion_count or 0) + AI_CREDITS_PER_MESSAGE
     await db.commit()
@@ -103,7 +103,7 @@ async def get_ai_credits_response(
             raise UserNotFound("User not found")
         used = user.free_conversion_count or 0
         limit = settings.FREE_TIER_AI_CREDITS
-        is_limit_exempt = getattr(user, "is_superuser", False) or getattr(user, "is_premium", False)
+        is_limit_exempt = getattr(user, "is_superuser", False) or getattr(user, "is_premium", False) or getattr(user, "can_access_admin_panel", False)
         remaining = 999999 if is_limit_exempt else max(0, limit - used)
         return {"credits_used": used, "credits_remaining": remaining, "credits_limit": limit}
     if not x_anonymous_session_id:

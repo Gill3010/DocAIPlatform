@@ -27,8 +27,8 @@ async def format_manuscript(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    # Regla: Solo Plan Pro y superiores
-    if not current_user.is_superuser and current_user.premium_plan_id not in ['Pro', 'Empresa']:
+    # Regla: Solo Plan Pro y superiores, o usuarios con acceso al panel admin
+    if not current_user.is_superuser and not getattr(current_user, "can_access_admin_panel", False) and current_user.premium_plan_id not in ['Pro', 'Empresa']:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="pro_plan_required"

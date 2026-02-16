@@ -39,9 +39,9 @@ const PageFallback = () => (
   </div>
 );
 
-/** Valida el token con el backend antes de redirigir al dashboard; si es inválido (401) se limpia la sesión y se muestra el login. */
+/** Valida el token con el backend antes de redirigir al dashboard; si es inválido (401/500) se limpia la sesión y se muestra el login. */
 function LoginRoute() {
-  const { token } = useAppStore();
+  const { token, logout } = useAppStore();
   const navigate = useNavigate();
   const [validating, setValidating] = useState(!!token);
 
@@ -58,7 +58,10 @@ function LoginRoute() {
         if (!cancelled) navigate('/dashboard', { replace: true });
       })
       .catch(() => {
-        if (!cancelled) setValidating(false);
+        if (!cancelled) {
+          logout(); // Token inválido o backend caído: limpiar sesión para mostrar login
+          setValidating(false);
+        }
       })
       .finally(() => {
         if (!cancelled) setValidating(false);
@@ -66,7 +69,7 @@ function LoginRoute() {
     return () => {
       cancelled = true;
     };
-  }, [token, navigate]);
+  }, [token, navigate, logout]);
 
   if (!token) return <Login />;
   if (validating) {
@@ -76,7 +79,7 @@ function LoginRoute() {
       </div>
     );
   }
-  return null;
+  return <Login />;
 }
 
 function App() {
