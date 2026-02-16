@@ -36,7 +36,7 @@ import {
 export const SOURCE_LABELS: Record<string, string> = {
     docx: 'Word',
     pdf: 'PDF',
-    txt: 'Texto',
+    txt: 'TXT',
     xml: 'XML',
     html: 'HTML',
     htm: 'HTML',
@@ -52,7 +52,7 @@ export const SOURCE_LABELS: Record<string, string> = {
 export const TARGET_LABELS: Record<string, string> = {
     pdf: 'PDF',
     docx: 'Word',
-    txt: 'Texto',
+    txt: 'TXT',
     xml: 'XML',
     html: 'HTML',
     png: 'PNG',
@@ -77,7 +77,7 @@ export const CONVERSION_MAP: Record<string, Array<{ id: string; name: string; ic
     pdf: [
         { id: 'docx', name: 'Word', icon: File },
         { id: 'png', name: 'Imagen PNG', icon: Image },
-        { id: 'txt', name: 'Texto Plano', icon: FileText },
+        { id: 'txt', name: 'TXT', icon: FileText },
         { id: 'pptx', name: 'PowerPoint', icon: Presentation },
         { id: 'xlsx', name: 'Excel', icon: Table }
     ],
@@ -86,7 +86,7 @@ export const CONVERSION_MAP: Record<string, Array<{ id: string; name: string; ic
     ],
     docx: [
         { id: 'pdf', name: 'PDF', icon: FileText },
-        { id: 'txt', name: 'Texto Plano', icon: FileText },
+        { id: 'txt', name: 'TXT', icon: FileText },
         { id: 'xml', name: 'XML', icon: GraduationCap }
     ],
     xml: [
@@ -171,9 +171,9 @@ export const CONVERSION_TOOLTIPS: Record<string, string> = {
     'pptx-pdf': 'Convierte presentaciones PowerPoint en documentos PDF portátiles',
     'pdf-xlsx': 'Extrae tablas y datos de PDF a formato Excel editable',
     'pdf-pptx': 'Convierte páginas PDF en diapositivas PowerPoint editables',
-    'pdf-txt': 'Extrae texto plano de archivos PDF para análisis o edición simple',
-    'docx-txt': 'Convierte documentos Word a texto plano sin formato',
-    'txt-docx': 'Convierte archivos de texto plano en documentos Word con formato básico',
+    'pdf-txt': 'Extrae TXT de archivos PDF para análisis o edición simple',
+    'docx-txt': 'Convierte documentos Word a TXT sin formato',
+    'txt-docx': 'Convierte archivos TXT en documentos Word con formato básico',
     'docx-xml': 'Convierte documentos Word al formato JATS XML para publicación académica',
     'image-pdf': 'Convierte imágenes PNG o JPG en documentos PDF de alta calidad',
     'pdf-png': 'Convierte páginas PDF en imágenes PNG de alta resolución',

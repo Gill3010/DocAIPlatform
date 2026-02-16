@@ -27,6 +27,7 @@ export const apiService = {
     uploadAndConvert: convert.uploadAndConvert,
     downloadConvertedFile: convert.downloadConvertedFile,
     getConversionHistory: convert.getConversionHistory,
+    getConversionStatus: convert.getConversionStatus,
     getSupportedFormats: convert.getSupportedFormats,
     getAdminMe: admin.getAdminMe,
     getAdminStats: admin.getAdminStats,

@@ -160,6 +160,16 @@
     gap: var(--spacing-lg);
 }
 
+/* Contenedor Cloudflare Turnstile: evita desborde en móviles */
+.form-group.turnstile-container {
+    max-width: 100%;
+    min-width: 0; /* permite que flex children se encojan */
+}
+
+.form-group.turnstile-container > div {
+    max-width: 100%;
+}
+
 .form-group {
     display: flex;
     flex-direction: column;

@@ -186,7 +186,7 @@ export const FormatManuscript = () => {
                     <h4>Formatos soportados</h4>
                     <ul>
                         <li>DOCX - Microsoft Word</li>
-                        <li>TXT - Texto plano</li>
+                        <li>TXT</li>
                         <li>PDF - Documento portable</li>
                     </ul>
                 </div>

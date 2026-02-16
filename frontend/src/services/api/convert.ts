@@ -42,6 +42,20 @@ export async function getConversionHistory(limit: number = 20): Promise<any[]> {
     return apiRequest<any[]>(`/convert/history?limit=${limit}`);
 }
 
+export async function getConversionStatus(
+    conversionId: number,
+    options?: { anonymousSessionId?: string }
+): Promise<any> {
+    const token = getToken();
+    const headers: Record<string, string> = {};
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (options?.anonymousSessionId) headers['X-Anonymous-Session-Id'] = options.anonymousSessionId;
+    const endpoint = token
+        ? `/convert/status/${conversionId}`
+        : `/convert/status-anonymous/${conversionId}`;
+    return apiRequest<any>(endpoint, { headers });
+}
+
 export async function getSupportedFormats(): Promise<any> {
     return apiRequest<any>('/convert/supported-formats');
 }

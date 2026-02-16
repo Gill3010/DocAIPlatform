@@ -1,11 +1,11 @@
 """
 Limpieza controlada del entorno para pruebas.
 - Conserva SOLO el super admin: admin@docaiplatform.com
-- Elimina todos los demás usuarios, conversiones, documentos, sesiones anónimas,
-  pdf_tool_uses, admin_audit_log.
-- Resetea créditos del super admin (free_conversion_count, ai_message_count) a 0.
-- Elimina todos los archivos en storage (uploads, converted, pdf_tools) y avatares.
-Ejecutar desde raíz: python backend/cleanup_for_tests.py
+- Elimina: usuarios (excepto super admin), payments, conversions, documents,
+  document_permissions, pdf_tool_uses, admin_audit_log, anonymous_sessions.
+- Resetea super admin: créditos 0, sin plan premium.
+- Elimina todos los archivos físicos: storage/uploads, storage/converted, storage/pdf_tools, avatares.
+Ejecutar desde raíz: python3 backend/cleanup_for_tests.py
 """
 import asyncio
 import sys
@@ -56,6 +56,7 @@ async def cleanup_database():
         # 2) Eliminar en orden por dependencias
         await db.execute(text("DELETE FROM document_permissions"))
         await db.execute(text("DELETE FROM documents"))
+        await db.execute(text("DELETE FROM payments"))
         await db.execute(text("DELETE FROM conversions"))
         await db.execute(text("DELETE FROM pdf_tool_uses"))
         await db.execute(text("DELETE FROM admin_audit_log"))
@@ -64,16 +65,26 @@ async def cleanup_database():
         # 3) Eliminar todos los usuarios excepto el super admin
         await db.execute(text("DELETE FROM users WHERE id != :id"), {"id": superadmin_id})
 
-        # 4) Resetear créditos del super admin (conversiones e IA) a 0
+        # 4) Resetear super admin: créditos a 0, sin plan premium, todo limpio para tests
         await db.execute(
-            text("UPDATE users SET free_conversion_count = 0, ai_message_count = 0 WHERE id = :id"),
+            text("""
+                UPDATE users SET
+                    free_conversion_count = 0,
+                    ai_message_count = 0,
+                    monthly_conversion_count = 0,
+                    is_premium = 0,
+                    premium_plan_id = NULL,
+                    subscription_end_date = NULL,
+                    last_billing_reset = NULL
+                WHERE id = :id
+            """),
             {"id": superadmin_id},
         )
 
         await db.commit()
-        print("✓ Base de datos limpiada: document_permissions, documents, conversions,")
+        print("✓ Base de datos limpiada: document_permissions, documents, payments, conversions,")
         print("  pdf_tool_uses, admin_audit_log, anonymous_sessions eliminados.")
-        print("✓ Créditos del super admin (conversiones e IA) reseteados a 0.")
+        print("✓ Super admin reseteado: créditos 0, sin plan premium.")
         print(f"✓ Solo permanece el usuario: {SUPERADMIN_EMAIL}")
 
 

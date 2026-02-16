@@ -236,8 +236,9 @@ export const Convert = () => {
                                                                 a.click();
                                                                 window.URL.revokeObjectURL(url);
                                                                 document.body.removeChild(a);
-                                                            } catch {
-                                                                alert('Descarga fallida. Por favor intenta de nuevo.');
+                                                            } catch (error: any) {
+                                                                const errorMsg = error?.detail || error?.message || 'Descarga fallida. Por favor intenta de nuevo.';
+                                                                alert(errorMsg);
                                                             }
                                                         }
                                                     }}

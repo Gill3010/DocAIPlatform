@@ -1,10 +1,11 @@
 """
 Text and Document Conversion Converters
 Handles: TXT ↔ DOCX, PDF ↔ TXT
+Preserves document structure: inserts [Imagen] placeholders where images appear (accessibility).
 """
-from pypdf import PdfReader
 from docx import Document
-from typing import List
+from docx.oxml.ns import qn
+from typing import List, Tuple
 
 from app.utils.base_converter import BaseConverter, ConversionError
 
@@ -43,67 +44,124 @@ class TextToDocxConverter(BaseConverter):
             raise ConversionError(f"Text to DOCX conversion failed: {str(e)}")
 
 
+def _iter_docx_blocks(doc):
+    """Iterate paragraphs and table cells in document order. Yields (block, is_table_cell)."""
+    from docx.document import Document as _Document
+    from docx.table import Table as DocxTable
+    from docx.text.paragraph import Paragraph as DocxParagraph
+
+    body = doc.element.body
+    for child in body.iterchildren():
+        if child.tag == qn("w:p"):
+            yield (DocxParagraph(child, doc), False)
+        elif child.tag == qn("w:tbl"):
+            tbl = DocxTable(child, doc)
+            for row in tbl.rows:
+                for cell in row.cells:
+                    for para in cell.paragraphs:
+                        yield (para, True)
+
+
+def _para_to_text_with_image_placeholders(para) -> str:
+    """Extract text from paragraph, inserting [Imagen] where inline images appear."""
+    parts = []
+    for run in para.runs:
+        has_image = any(
+            "blip" in str(desc.tag).lower()
+            for desc in run._element.iterdescendants()
+        )
+        if has_image:
+            parts.append("[Imagen]")
+        if run.text:
+            parts.append(run.text)
+    return "".join(parts)
+
+
 class DocxToTextConverter(BaseConverter):
-    """Convert DOCX to plain text"""
-    
+    """Convert DOCX to plain text. Inserts [Imagen] where images appear (structure + accessibility)."""
+
     @property
     def source_formats(self) -> List[str]:
         return ['docx']
-    
+
     @property
     def target_formats(self) -> List[str]:
         return ['txt']
-    
+
     def convert(self, input_path: str, output_path: str) -> bool:
-        """Convert DOCX to text file"""
+        """Convert DOCX to text file preserving image positions as [Imagen] placeholders."""
         try:
             self.ensure_directory(output_path)
-            
             doc = Document(input_path)
-            
-            # Extract all text
-            full_text = []
-            for para in doc.paragraphs:
-                full_text.append(para.text)
-            
-            # Write to text file
+            lines = []
+            for block, _ in _iter_docx_blocks(doc):
+                text = _para_to_text_with_image_placeholders(block).strip()
+                if text:
+                    lines.append(text)
             with open(output_path, 'w', encoding='utf-8') as f:
-                f.write('\n'.join(full_text))
-            
+                f.write('\n\n'.join(lines))
             return True
         except Exception as e:
-            raise ConversionError(f"DOCX to text conversion failed: {str(e)}")
+            raise ConversionError(f"DOCX to text conversion failed: {str(e)}") from e
 
 
 class PDFToTextConverter(BaseConverter):
-    """Extract text from PDF"""
-    
+    """Extract text from PDF. Inserts [Imagen] where images appear (structure + accessibility)."""
+
     @property
     def source_formats(self) -> List[str]:
         return ['pdf']
-    
+
     @property
     def target_formats(self) -> List[str]:
         return ['txt']
-    
+
     def convert(self, input_path: str, output_path: str) -> bool:
-        """Extract text from PDF"""
+        """Extract text from PDF, inserting [Imagen] placeholders for images in reading order."""
         try:
             self.ensure_directory(output_path)
-            
-            reader = PdfReader(input_path)
-            
-            # Extract text from all pages
-            full_text = []
-            for page in reader.pages:
-                text = page.extract_text()
-                if text:
-                    full_text.append(text)
-            
-            # Write to text file
+            import fitz  # PyMuPDF
+
+            all_parts: List[str] = []
+            with fitz.open(input_path) as doc:
+                for page in doc:
+                    elements: List[Tuple[float, float, str]] = []  # (top, left, content)
+
+                    # Text blocks with sort=True for reading order
+                    blocks = page.get_text("blocks", sort=True)
+                    for b in blocks:
+                        x0, y0, x1, y1, text, _bn, block_type = b
+                        text_clean = (text or "").strip()
+                        if block_type == 1:
+                            elements.append((y0, x0, "[Imagen]"))
+                        elif text_clean:
+                            elements.append((y0, x0, text_clean))
+
+                    # Embedded images (text blocks may miss some)
+                    for img in page.get_images(full=True):
+                        for r in page.get_image_rects(img[0]):
+                            elements.append((r.y0, r.x0, "[Imagen]"))
+
+                    elements.sort(key=lambda e: (e[0], e[1]))
+                    # Dedupe consecutive [Imagen] from same area
+                    prev_was_img = False
+                    for _, _, content in elements:
+                        if content == "[Imagen]":
+                            if prev_was_img:
+                                continue
+                            prev_was_img = True
+                        else:
+                            prev_was_img = False
+                        all_parts.append(content)
+                    all_parts.append("")
+
+            text_out = "\n\n".join(p.strip() for p in all_parts if p.strip())
             with open(output_path, 'w', encoding='utf-8') as f:
-                f.write('\n\n'.join(full_text))
-            
+                f.write(text_out)
             return True
+        except ImportError as e:
+            raise ConversionError(
+                "PDF → texto requiere PyMuPDF. Instala con: pip install PyMuPDF"
+            ) from e
         except Exception as e:
-            raise ConversionError(f"PDF to text conversion failed: {str(e)}")
+            raise ConversionError(f"PDF to text conversion failed: {str(e)}") from e

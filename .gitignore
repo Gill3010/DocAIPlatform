@@ -66,3 +66,9 @@ backend/static/uploads/
 
 # Archivos temporales / comprimidos
 *.tar.gz
+
+# Docker build cache / credenciales
+.docker/
+
+# Archivos residuales de comandos (ej. pip)
+=*

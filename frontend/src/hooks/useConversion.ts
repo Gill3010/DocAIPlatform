@@ -37,9 +37,16 @@ export function useConversion(options: UseConversionOptions) {
     const startConversion = useCallback(
         async (selectedFile: FileWithProgress | null, targetFormat: string) => {
             if (!selectedFile) return;
-            if (!isAnonymous && user && !isAdminUnlimited && (user.free_conversion_count ?? 0) >= 5) {
+            // Plan Básico: 50 conversiones/mes (monthly_conversion_count). Gratuito: 5 (free_conversion_count)
+            const isBasicPlan = user?.premium_plan_id === 'Básico';
+            const limitReached = isAdminUnlimited
+                ? false
+                : isBasicPlan
+                    ? (user?.monthly_conversion_count ?? 0) >= 50
+                    : (user?.free_conversion_count ?? 0) >= 5;
+            if (!isAnonymous && user && limitReached) {
                 if (setUpgradeModalContent) {
-                    setUpgradeModalContent(null); // Use defaults
+                    setUpgradeModalContent(null);
                 }
                 setShowUpgradeModal(true);
                 return;
@@ -48,24 +55,12 @@ export function useConversion(options: UseConversionOptions) {
             setSelectedFile((prev) => (prev ? { ...prev, status: 'uploading', progress: 0 } : null));
 
             try {
-                const uploadInterval = setInterval(() => {
-                    setSelectedFile((prev) => {
-                        if (!prev || prev.progress >= 50) {
-                            clearInterval(uploadInterval);
-                            return prev;
-                        }
-                        return { ...prev, progress: prev.progress + 10 };
-                    });
-                }, 200);
-
                 const apiOptions = isAnonymous && sessionId ? { anonymousSessionId: sessionId } : undefined;
                 const response = await apiService.uploadAndConvert(
                     selectedFile.file,
                     targetFormat,
                     apiOptions
                 );
-
-                clearInterval(uploadInterval);
 
                 if (isAnonymous && response.credits_remaining !== undefined) {
                     syncFromCreditsRemaining(response.credits_remaining);
@@ -83,16 +78,17 @@ export function useConversion(options: UseConversionOptions) {
                 setSelectedFile((prev) =>
                     prev
                         ? {
-                            ...prev,
-                            status: 'converting',
-                            progress: 60,
-                            conversionId: response.conversion_id,
-                            creditsRemaining: response.credits_remaining,
-                            isAnonymous,
-                        }
+                              ...prev,
+                              status: 'converting',
+                              progress: 60,
+                              conversionId: response.conversion_id,
+                              creditsRemaining: response.credits_remaining,
+                              isAnonymous,
+                          }
                         : null
                 );
 
+                // Simular progreso mientras espera (conversión síncrona)
                 const convertInterval = setInterval(() => {
                     setSelectedFile((prev) => {
                         if (!prev || prev.progress >= 100) {

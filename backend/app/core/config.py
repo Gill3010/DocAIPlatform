@@ -26,6 +26,17 @@ class Settings(BaseSettings):
     # Formatos Premium (requieren plan Básico o superior)
     PREMIUM_FORMATS: list[str] = ["xml", "dwg", "dxf"]
 
+    # ECS Fargate converter (nuevo sistema)
+    USE_ECS_CONVERTER: bool = True  # True = usar ECS; False = convertir local
+    AWS_REGION: str = "us-east-2"
+    AWS_ACCOUNT_ID: str = "766092484543"
+    ECS_CLUSTER_NAME: str = "document-converter-cluster"
+    ECS_TASK_FAMILY: str = "document-converter-task"
+    ECS_INPUT_BUCKET: str = ""  # Vacío = docai-converter-input-{ACCOUNT_ID}
+    ECS_OUTPUT_BUCKET: str = ""
+    ECS_SUBNET_ID: str = "subnet-0c38f7efc1eabdb37"
+    ECS_SECURITY_GROUP_ID: str = "sg-025ec46598dcb44ed"
+
     # Security
     SECRET_KEY: str = "your-super-secret-key-change-in-production"
     ALGORITHM: str = "HS256"

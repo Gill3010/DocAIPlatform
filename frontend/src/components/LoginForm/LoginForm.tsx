@@ -174,6 +174,7 @@ export const LoginForm = ({
             if (!win.turnstile || !turnstileContainerRef.current) return false;
             const widgetId = win.turnstile.render(turnstileContainerRef.current, {
                 sitekey: TURNSTILE_SITE_KEY,
+                size: 'flexible',
                 callback: (token: string) => setTurnstileToken(token),
                 'expired-callback': () => setTurnstileToken(null),
                 'error-callback': () => setTurnstileToken(null),
