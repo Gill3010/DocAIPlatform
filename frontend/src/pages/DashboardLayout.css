@@ -175,33 +175,34 @@
     text-decoration: none;
     cursor: pointer;
     transition: transform var(--transition-fast), box-shadow var(--transition-base), background var(--transition-base);
-    background: var(--color-primary);
-    box-shadow: 0 2px 8px rgba(10, 37, 64, 0.3);
+    background: var(--primary-button-color);
+    box-shadow: 0 2px 8px rgba(255, 140, 66, 0.3);
 }
 
 .header-register-btn:hover {
-    background: var(--color-primary-hover);
+    background: var(--primary-button-color-hover);
     color: #FFFFFF;
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(10, 37, 64, 0.25);
+    box-shadow: 0 6px 16px rgba(255, 140, 66, 0.25);
 }
 
 .header-register-btn:active {
     transform: translateY(0);
+    background: var(--primary-button-color-active);
 }
 
 .header-register-btn:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 3px var(--color-ai-focus-ring);
+    box-shadow: 0 0 0 3px var(--primary-button-color-focus);
 }
 
 [data-theme="dark"] .header-register-btn {
-    background: #FF8c42;
+    background: var(--primary-button-color);
     color: #FFFFFF;
 }
 
 [data-theme="dark"] .header-register-btn:hover {
-    background: #e67a35;
+    background: var(--primary-button-color-hover);
     color: #FFFFFF;
 }
 

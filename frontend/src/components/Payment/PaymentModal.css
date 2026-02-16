@@ -83,17 +83,22 @@
 .pay-button {
     width: 100%;
     padding: 12px;
-    background: #3b82f6;
+    background: var(--primary-button-color);
     color: white;
     border: none;
     border-radius: 6px;
     font-weight: 600;
     margin-top: 16px;
     cursor: pointer;
+    transition: all var(--transition-fast);
+}
+
+.pay-button:hover:not(:disabled) {
+    background: var(--primary-button-color-hover);
 }
 
 .pay-button:disabled {
-    background: #93c5fd;
+    background: var(--primary-button-color-disabled);
     cursor: not-allowed;
 }
 
@@ -126,17 +131,17 @@
     color: #4b5563;
 }
 
-.btn-primary {
-    background-color: #0070ba;
+.payment-modal .btn-primary {
+    background-color: var(--primary-button-color);
     color: white;
     border: none;
     padding: 12px 24px;
     border-radius: 20px;
     font-weight: bold;
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all var(--transition-fast);
 }
 
-.btn-primary:hover {
-    background-color: #005ea6;
+.payment-modal .btn-primary:hover {
+    background-color: var(--primary-button-color-hover);
 }

@@ -91,7 +91,7 @@
     align-items: center;
     gap: var(--spacing-sm);
     padding: var(--spacing-md) var(--spacing-lg);
-    background: #FF8C42;
+    background: var(--primary-button-color);
     color: white;
     font-weight: 600;
     font-size: var(--font-size-sm);
@@ -105,7 +105,20 @@
     transform: translateX(4px);
     box-shadow: var(--shadow-md);
     color: white;
-    background: #e67a35;
+    background: var(--primary-button-color-hover);
+}
+
+.action-button:active {
+    background: var(--primary-button-color-active);
+}
+
+.action-button:focus-visible {
+    box-shadow: 0 0 0 3px var(--primary-button-color-focus);
+}
+
+.action-button:disabled {
+    background: var(--primary-button-color-disabled);
+    cursor: not-allowed;
 }
 
 .action-button svg {

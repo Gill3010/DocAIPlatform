@@ -166,24 +166,34 @@
     font-size: var(--font-size-sm);
     font-weight: 600;
     color: #FFFFFF;
-    background: var(--gradient-primary);
+    background: var(--primary-button-color);
     border: none;
     border-radius: var(--radius-md);
     cursor: pointer;
-    transition: opacity var(--transition-fast);
+    transition: all var(--transition-fast);
+}
+
+.pricing-card__cta:hover:not(:disabled) {
+    background: var(--primary-button-color-hover);
 }
 
 .pricing-card__cta:disabled {
+    background: var(--primary-button-color-disabled);
     opacity: 0.7;
     cursor: not-allowed;
 }
 
 .pricing-card__cta--primary {
-    background: var(--gradient-primary);
+    background: var(--primary-button-color);
     color: #FFFFFF;
 }
 
+.pricing-card__cta--primary:hover:not(:disabled) {
+    background: var(--primary-button-color-hover);
+}
+
 .pricing-card__cta--primary:disabled {
+    background: var(--primary-button-color-disabled);
     opacity: 0.85;
 }
 

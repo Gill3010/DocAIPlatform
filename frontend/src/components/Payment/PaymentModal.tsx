@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { PayPalScriptProvider, PayPalButtons } from "@paypal/react-paypal-js";
 import { X } from 'lucide-react';
@@ -60,7 +59,7 @@ export const PaymentModal = ({ plan, onClose, onSuccess }: PaymentModalProps) =>
                                             method: 'POST',
                                             headers: {
                                                 'Content-Type': 'application/json',
-                                                'Authorization': `Bearer ${token}`
+                                                'Authorization': `Bearer ${token || ''}`,
                                             },
                                             body: JSON.stringify({
                                                 amount: plan.price,
@@ -80,12 +79,11 @@ export const PaymentModal = ({ plan, onClose, onSuccess }: PaymentModalProps) =>
                                                 method: 'POST',
                                                 headers: {
                                                     'Content-Type': 'application/json',
-                                                    'Authorization': `Bearer ${token}`
+                                                    'Authorization': `Bearer ${token || ''}`,
                                                 },
                                                 body: JSON.stringify({ orderID: data.orderID })
                                             });
                                             if (!res.ok) throw new Error("Capture failed");
-
                                             setSuccess(true);
                                             onSuccess();
                                         } catch (e) {

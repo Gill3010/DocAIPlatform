@@ -76,10 +76,10 @@
     cursor: pointer;
     border: none;
     text-decoration: none;
-    background: var(--gradient-primary);
+    background: var(--primary-button-color);
     color: #FFFFFF;
     box-shadow: var(--shadow-md);
-    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    transition: all var(--transition-fast);
 }
 
 .upgrade-modal__btn:hover,
@@ -89,17 +89,19 @@
 }
 
 .upgrade-modal__btn:hover {
+    background: var(--primary-button-color-hover);
     transform: translateY(-2px);
     box-shadow: var(--shadow-lg);
 }
 
 .upgrade-modal__btn:active {
+    background: var(--primary-button-color-active);
     transform: translateY(0);
 }
 
 .upgrade-modal__btn:focus {
     outline: none;
-    box-shadow: var(--focus-ring);
+    box-shadow: 0 0 0 3px var(--primary-button-color-focus);
 }
 
 .upgrade-modal__close {

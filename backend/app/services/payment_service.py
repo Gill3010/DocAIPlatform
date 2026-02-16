@@ -31,14 +31,14 @@ class PaymentService:
                     "currency_code": currency,
                     "value": str(amount)
                 },
-                "custom_id": f"{user.id}|{plan_id}" # Store metadata in custom_id
+                "custom_id": f"{user.id}|{plan_id}"
             }]
         })
 
         try:
             response = paypal_client.execute(request)
             order_id = response.result.id
-            
+
             if db:
                 payment = Payment(
                     user_id=user.id,

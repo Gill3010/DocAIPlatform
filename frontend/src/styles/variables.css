@@ -42,6 +42,23 @@
   --color-cta: #FF8C42;
   --color-cta-hover: #FFD8A8;
 
+  /* Botón primario oficial - naranja global (Convertir, Iniciar sesión, Comprar, etc.) */
+  --primary-button-color: #FF8C42;
+  --primary-button-color-hover: #e67a35;
+  --primary-button-color-active: #d16a2b;
+  --primary-button-color-focus: rgba(255, 140, 66, 0.4);
+  --primary-button-color-disabled: rgba(255, 140, 66, 0.5);
+
+  /* Botón secundario - cuando hay 2 botones juntos (Editar, Cancelar, etc.) */
+  --secondary-button-bg: var(--color-surface);
+  --secondary-button-border: var(--color-border);
+  --secondary-button-color: var(--color-text-primary);
+  --secondary-button-hover-bg: var(--color-bg-secondary);
+  --secondary-button-hover-border: var(--color-primary);
+
+  /* Alias para páginas que usan --accent-primary (MyDocuments, etc.) */
+  --accent-primary: var(--primary-button-color);
+
   /* Gradientes: convertidos a lineales planos con la paleta */
   --gradient-primary: linear-gradient(135deg, #0A2540 0%, #1F3C88 100%);
   --gradient-secondary: linear-gradient(135deg, #1F3C88 0%, #002B5B 100%);
@@ -135,6 +152,20 @@
   --color-cta-hover: #FF6D2E;
   --focus-border: #FF4D00;
   --focus-ring: 0 0 0 3px rgba(255, 77, 0, 0.4);
+
+  /* Botón primario oficial - naranja global (modo oscuro) */
+  --primary-button-color: #FF8C42;
+  --primary-button-color-hover: #e67a35;
+  --primary-button-color-active: #d16a2b;
+  --primary-button-color-focus: rgba(255, 140, 66, 0.4);
+  --primary-button-color-disabled: rgba(255, 140, 66, 0.5);
+
+  /* Botón secundario (modo oscuro) */
+  --secondary-button-bg: var(--color-surface);
+  --secondary-button-border: var(--color-border);
+  --secondary-button-color: var(--color-text-primary);
+  --secondary-button-hover-bg: var(--color-surface-hover);
+  --secondary-button-hover-border: var(--color-primary);
 
   /* Feedback: verde éxito, naranja error/aviso */
   --color-success: #39FF14;

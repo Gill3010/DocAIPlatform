@@ -144,7 +144,7 @@
     align-items: center;
     gap: var(--spacing-sm);
     padding: var(--spacing-md) var(--spacing-xl);
-    background: var(--gradient-primary);
+    background: var(--primary-button-color);
     color: white;
     border-radius: var(--radius-md);
     font-weight: 600;
@@ -154,6 +154,7 @@
 }
 
 .select-btn:hover {
+    background: var(--primary-button-color-hover);
     transform: translateY(-2px);
     box-shadow: var(--shadow-lg);
 }
@@ -508,7 +509,7 @@
     flex: 1;
     min-width: 200px;
     padding: var(--spacing-lg) var(--spacing-xl);
-    background: var(--gradient-primary);
+    background: var(--primary-button-color);
     color: white;
     border: none;
     border-radius: var(--radius-lg);
@@ -520,18 +521,20 @@
 }
 
 .download-btn:hover {
+    background: var(--primary-button-color-hover);
     transform: translateY(-2px);
     box-shadow: var(--shadow-lg);
 }
 
 .download-btn:active {
+    background: var(--primary-button-color-active);
     transform: translateY(0);
 }
 
 .convert-btn {
     width: 100%;
     padding: var(--spacing-lg) var(--spacing-xl);
-    background: var(--gradient-primary);
+    background: var(--primary-button-color);
     color: white;
     border: none;
     border-radius: var(--radius-md);
@@ -547,17 +550,23 @@
 }
 
 .convert-btn:hover {
+    background: var(--primary-button-color-hover);
     transform: translateY(-2px);
     box-shadow: var(--shadow-lg);
-    background: var(--gradient-primary);
 }
 
 .convert-btn:active {
+    background: var(--primary-button-color-active);
     transform: translateY(0);
     box-shadow: var(--shadow-sm);
 }
 
+.convert-btn:focus-visible {
+    box-shadow: 0 0 0 3px var(--primary-button-color-focus);
+}
+
 .convert-btn:disabled {
+    background: var(--primary-button-color-disabled);
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;

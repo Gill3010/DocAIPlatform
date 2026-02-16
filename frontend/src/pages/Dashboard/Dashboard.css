@@ -170,11 +170,11 @@
 
 /* Asegurar naranja en los tres botones de Otras acciones (incl. Ver Historial) */
 .quick-actions-section .action-button {
-    background: #FF8C42;
+    background: var(--primary-button-color);
     color: white;
 }
 .quick-actions-section .action-button:hover {
-    background: #e67a35;
+    background: var(--primary-button-color-hover);
     color: white;
 }
 

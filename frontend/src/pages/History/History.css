@@ -262,13 +262,15 @@
     color: #FF8C42;
 }
 
+/* Descargar = CTA principal (naranja). Editar = secundario (outline neutral) */
 .download-btn-small {
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
     padding: var(--spacing-sm) var(--spacing-md);
-    background: var(--color-primary);
+    background: var(--primary-button-color);
     color: white;
+    border: none;
     border-radius: var(--radius-md);
     font-weight: 600;
     font-size: var(--font-size-sm);
@@ -276,7 +278,7 @@
 }
 
 .download-btn-small:hover {
-    background: var(--color-primary-hover);
+    background: var(--primary-button-color-hover);
     transform: translateY(-2px);
     box-shadow: var(--shadow-md);
 }
@@ -286,9 +288,9 @@
     align-items: center;
     gap: var(--spacing-sm);
     padding: var(--spacing-sm) var(--spacing-md);
-    background: var(--color-surface);
-    color: var(--color-primary);
-    border: 1px solid var(--color-primary);
+    background: var(--secondary-button-bg);
+    color: var(--secondary-button-color);
+    border: 1px solid var(--secondary-button-border);
     border-radius: var(--radius-md);
     font-weight: 600;
     font-size: var(--font-size-sm);
@@ -296,7 +298,9 @@
 }
 
 .edit-btn-small:hover {
-    background: var(--color-bg-secondary);
+    background: var(--secondary-button-hover-bg);
+    border-color: var(--secondary-button-hover-border);
+    color: var(--color-primary);
     transform: translateY(-2px);
     box-shadow: var(--shadow-sm);
 }
@@ -340,10 +344,15 @@
     align-items: center;
     gap: var(--spacing-sm);
     padding: var(--spacing-md) var(--spacing-xl);
-    background: var(--color-primary);
+    background: var(--primary-button-color);
     color: white;
+    border: none;
     border-radius: var(--radius-md);
     font-weight: 600;
+}
+
+.retry-btn:hover {
+    background: var(--primary-button-color-hover);
 }
 
 /* Empty State */

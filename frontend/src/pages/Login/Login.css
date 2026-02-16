@@ -289,7 +289,7 @@
 /* ===== Botón principal ===== */
 .btn-primary {
     padding: var(--spacing-md) var(--spacing-lg);
-    background: var(--gradient-primary);
+    background: var(--primary-button-color);
     color: white;
     font-size: var(--font-size-base);
     font-weight: 600;
@@ -301,24 +301,28 @@
     margin-top: var(--spacing-sm);
 }
 
-.login-mode .btn-primary {
-    background: var(--gradient-primary);
-}
-
+.login-mode .btn-primary,
 .register-mode .btn-primary {
-    background: var(--gradient-secondary);
+    background: var(--primary-button-color);
 }
 
 .btn-primary:hover:not(:disabled) {
+    background: var(--primary-button-color-hover);
     transform: translateY(-2px);
     box-shadow: var(--shadow-lg);
 }
 
 .btn-primary:active:not(:disabled) {
+    background: var(--primary-button-color-active);
     transform: translateY(0);
 }
 
+.btn-primary:focus-visible {
+    box-shadow: 0 0 0 3px var(--primary-button-color-focus);
+}
+
 .btn-primary:disabled {
+    background: var(--primary-button-color-disabled);
     opacity: 0.6;
     cursor: not-allowed;
 }

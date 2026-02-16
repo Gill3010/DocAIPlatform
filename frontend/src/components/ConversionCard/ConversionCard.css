@@ -124,7 +124,7 @@
 /* Botón visual solo para "Convertir" y "Usar" (CTA de acción) */
 .conversion-card__cta-btn {
     display: inline-block;
-    background-color: #FF8C42;
+    background-color: var(--primary-button-color);
     color: #ffffff;
     padding: 6px 12px;
     border-radius: var(--radius-md, 8px);
@@ -134,7 +134,15 @@
 
 .conversion-card:hover .conversion-card__cta-btn {
     text-decoration: none;
-    background-color: #e67a35;
+    background-color: var(--primary-button-color-hover);
+}
+
+.conversion-card__cta-btn:active {
+    background-color: var(--primary-button-color-active);
+}
+
+.conversion-card__cta-btn:focus-visible {
+    box-shadow: 0 0 0 3px var(--primary-button-color-focus);
 }
 
 .conversion-card:not(.conversion-card--disabled):hover .conversion-card__cta-btn {

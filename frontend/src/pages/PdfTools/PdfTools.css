@@ -183,21 +183,23 @@
     justify-content: center;
     gap: var(--spacing-sm);
     padding: var(--spacing-md) var(--spacing-xl);
-    background: var(--gradient-primary);
+    background: var(--primary-button-color);
     color: white;
     border: none;
     border-radius: var(--radius-lg);
     font-weight: 600;
     cursor: pointer;
     margin-top: var(--spacing-sm);
+    transition: all var(--transition-fast);
 }
 
 .pdf-tools-submit:hover:not(:disabled) {
-    opacity: 0.95;
+    background: var(--primary-button-color-hover);
     transform: translateY(-1px);
 }
 
 .pdf-tools-submit:disabled {
+    background: var(--primary-button-color-disabled);
     opacity: 0.7;
     cursor: not-allowed;
 }

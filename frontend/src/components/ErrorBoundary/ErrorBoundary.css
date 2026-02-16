@@ -57,11 +57,11 @@
 }
 
 .error-boundary__btn--secondary {
-    border-color: var(--color-primary, #0A2540);
-    background: var(--color-primary, #0A2540);
+    border: none;
+    background: var(--primary-button-color);
     color: #FFFFFF;
 }
 
 .error-boundary__btn--secondary:hover {
-    opacity: 0.9;
+    background: var(--primary-button-color-hover);
 }
