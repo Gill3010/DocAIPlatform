@@ -223,6 +223,74 @@ class PptxToPDFConverter(BaseConverter):
             raise ConversionError(f"PowerPoint → PDF error con Docker: {str(e)}") from e
 
 
+def _is_tables_poor_quality(tables) -> bool:
+    """True si las tablas extraídas parecen insuficientes."""
+    if not tables:
+        return True
+    total = sum(len(r) for t in tables for r in (t or []))
+    return total < 2
+
+
+def _looks_like_fragmented_table(tables) -> bool:
+    """True si la extracción de tablas fragmentó texto (ej: UNIVE|RSIDAD en vez de UNIVERSIDAD)."""
+    if not tables or not tables[0]:
+        return False
+    rows = tables[0][:20]
+    total_chars = 0
+    cell_count = 0
+    for r in rows:
+        for c in (r or []):
+            s = str(c).strip() if c else ""
+            if s:
+                total_chars += len(s)
+                cell_count += 1
+    if cell_count < 2:
+        return False
+    avg_len = total_chars / cell_count
+    two_col = sum(1 for r in rows if r and len([c for c in r if c]) == 2)
+    one_col = sum(1 for r in rows if r and len([c for c in r if c]) == 1)
+    return avg_len < 15 or (two_col >= len(rows) * 0.3 and avg_len < 20) or (one_col >= 5 and avg_len < 12)
+
+
+def _extract_text_rows_by_layout(page) -> List[List]:
+    """Extrae filas preservando líneas completas (evita fragmentación UNIVE|RSIDAD)."""
+    text = page.extract_text()
+    if text:
+        return [[line.strip()] for line in text.splitlines() if line.strip()]
+    words = page.extract_words(extra_attrs=["x0", "top", "x1", "bottom"])
+    if not words:
+        return []
+    line_tol = 5
+    col_gap = 30
+    lines = {}
+    for w in words:
+        txt = (w.get("text") or "").strip()
+        if not txt:
+            continue
+        top = round(w["top"] / line_tol) * line_tol
+        if top not in lines:
+            lines[top] = []
+        lines[top].append((w["x0"], w["x1"], txt))
+
+    result = []
+    for top in sorted(lines.keys()):
+        items = sorted(lines[top], key=lambda x: x[0])
+        row_cells = []
+        curr_col = []
+        prev_x1 = -100
+        for x0, x1, txt in items:
+            if x0 - prev_x1 > col_gap and curr_col:
+                row_cells.append(" ".join(curr_col).strip())
+                curr_col = []
+            curr_col.append(txt)
+            prev_x1 = x1
+        if curr_col:
+            row_cells.append(" ".join(curr_col).strip())
+        if row_cells:
+            result.append(row_cells)
+    return result
+
+
 class PDFToExcelConverter(BaseConverter):
     """Convert PDF to Excel: extract tables and images from PDF pages into xlsx."""
 
@@ -243,11 +311,12 @@ class PDFToExcelConverter(BaseConverter):
             from openpyxl.drawing.image import Image as XLImage
             from PIL import Image as PILImage
             import io
+            from app.core.config import settings
 
             wb = Workbook()
             wb.remove(wb.active)
+            use_camelot = getattr(settings, 'USE_CAMELOT_FALLBACK', False)
 
-            # Tablas: primero con líneas (bordes), luego con texto (sin bordes)
             table_settings_lines = {
                 "vertical_strategy": "lines",
                 "horizontal_strategy": "lines",
@@ -261,41 +330,100 @@ class PDFToExcelConverter(BaseConverter):
                 "min_words_horizontal": 1,
             }
 
+            ROW_HEIGHT_PT = 15
+            COL_WIDTH_PT = 80
+            MAX_IMG_W = 180
+
             with pdfplumber.open(input_path) as pdf:
                 with fitz.open(input_path) as doc:
                     for page_num, page in enumerate(pdf.pages, 1):
-                        # 1. Extraer tablas (probar lines primero, luego text)
-                        tables = page.extract_tables(table_settings=table_settings_lines)
+                        text_lines = page.extract_text()
+                        tables = page.extract_tables(table_settings=table_settings_text)
                         if not tables:
-                            tables = page.extract_tables(table_settings=table_settings_text)
+                            tables = page.extract_tables(table_settings=table_settings_lines)
                         if not tables:
-                            text = page.extract_text()
-                            if text:
-                                tables = [[line] for line in text.splitlines()]
+                            if text_lines:
+                                tables = [[line.strip()] for line in text_lines.splitlines() if line.strip()]
                                 tables = [tables] if tables else []
 
-                        # 2. Extraer imágenes de esta página
+                        if use_camelot and _is_tables_poor_quality(tables):
+                            try:
+                                import camelot
+                                ct = camelot.read_pdf(input_path, pages=str(page_num), flavor='stream')
+                                if ct and len(ct) > 0:
+                                    tables = [t.df.values.tolist() for t in ct]
+                            except Exception:
+                                pass
+
+                        prefer_text = False
+                        if _looks_like_fragmented_table(tables):
+                            prefer_text = True
+                        elif tables and text_lines:
+                            table_chars = sum(len(str(c)) for t in tables for r in (t or []) for c in (r or []) if c)
+                            if len(text_lines.strip()) > max(table_chars * 1.3, 50):
+                                prefer_text = True
+                        if page_num <= 2 and text_lines and len(text_lines.strip()) > 100:
+                            prefer_text = True
+                        if prefer_text:
+                            if text_lines and text_lines.strip():
+                                text_rows = [[line.strip()] for line in text_lines.splitlines() if line.strip()]
+                                if text_rows:
+                                    tables = [text_rows]
+                            else:
+                                text_rows = _extract_text_rows_by_layout(page)
+                                if text_rows:
+                                    tables = [text_rows]
+
                         fitz_page = doc[page_num - 1]
                         image_list = fitz_page.get_images(full=True)
+                        page_rect = fitz_page.rect
+                        page_h = getattr(page_rect, 'height', 792)
+                        page_w = getattr(page_rect, 'width', 612)
 
-                        # Crear hoja por página
+                        img_positions = []
+                        for img in image_list:
+                            xref = img[0]
+                            er, ec = None, None
+                            try:
+                                rects = fitz_page.get_image_rects(xref)
+                                if rects:
+                                    r = rects[0]
+                                    y1 = getattr(r, 'y1', r[3])
+                                    x0 = getattr(r, 'x0', r[0])
+                                    er = max(1, 1 + int((page_h - y1) / ROW_HEIGHT_PT))
+                                    ec = max(1, min(26, 1 + int(x0 / COL_WIDTH_PT)))
+                            except Exception:
+                                pass
+                            img_positions.append((er, ec))
+
                         title = f"Pag_{page_num}"[:31]
                         ws = wb.create_sheet(title=title)
 
                         current_row = 1
-                        # 3. Escribir tablas
                         for tbl in tables or []:
                             if not tbl:
                                 continue
                             for row in tbl:
                                 clean = [str(c).strip() if c is not None else "" for c in (row or [])]
-                                ws.append(clean)
-                                current_row = ws.max_row
-                            current_row += 1  # espacio entre tablas
+                                if clean:
+                                    ws.append(clean)
+                                    if len(clean) == 1 and len(clean[0]) > 20:
+                                        try:
+                                            from openpyxl.utils import get_column_letter
+                                            end_col = max(len(clean), 5)
+                                            ws.merge_cells(
+                                                start_row=ws.max_row,
+                                                start_column=1,
+                                                end_row=ws.max_row,
+                                                end_column=end_col,
+                                            )
+                                        except Exception:
+                                            pass
+                                    current_row = ws.max_row
+                            current_row += 1
 
-                        # 4. Insertar imágenes debajo del contenido
-                        max_w = 220
-                        for img_idx, img in enumerate(image_list):
+                        max_w = MAX_IMG_W
+                        for idx, img in enumerate(image_list):
                             try:
                                 xref = img[0]
                                 base = doc.extract_image(xref)
@@ -312,9 +440,15 @@ class PDFToExcelConverter(BaseConverter):
                                 pil_img.save(buf, format="PNG")
                                 buf.seek(0)
                                 xl_img = XLImage(buf)
-                                xl_img.anchor = f"A{current_row}"
+                                if idx < len(img_positions) and img_positions[idx][0] is not None:
+                                    from openpyxl.utils import get_column_letter
+                                    er, ec = img_positions[idx][0], img_positions[idx][1]
+                                    cell_ref = f"{get_column_letter(ec)}{er}"
+                                    xl_img.anchor = cell_ref
+                                else:
+                                    xl_img.anchor = f"A{current_row}"
+                                    current_row += max(1, int(xl_img.height / ROW_HEIGHT_PT))
                                 ws.add_image(xl_img)
-                                current_row += max(1, int(xl_img.height / 15))
                             except Exception:
                                 pass
 

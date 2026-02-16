@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     # Formatos Premium (requieren plan Básico o superior)
     PREMIUM_FORMATS: list[str] = ["xml", "dwg", "dxf"]
 
+    # Mejoras de conversión (sin costo)
+    USE_OCR_FOR_SCANNED_PDF: bool = True   # OCR para PDF escaneados
+    USE_CAMELOT_FALLBACK: bool = True      # Fallback camelot en PDF→Excel
+
     # ECS Fargate converter (nuevo sistema)
     USE_ECS_CONVERTER: bool = True  # True = usar ECS; False = convertir local
     AWS_REGION: str = "us-east-2"

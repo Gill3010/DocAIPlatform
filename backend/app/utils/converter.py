@@ -5,6 +5,8 @@ Uses plugin architecture for easy extensibility
 DEPRECATED FUNCTIONS (kept for backward compatibility):
 - Old standalone functions still work but use new converters internally
 """
+import os
+import tempfile
 from app.utils.base_converter import ConversionError, registry
 from app.utils import converters  # Auto-registers all converters
 
@@ -28,15 +30,33 @@ def convert_file(input_path: str, output_path: str, source_format: str, target_f
     Raises:
         ConversionError: If conversion fails or format not supported
     """
-    # Normalize formats
     source = source_format.lower().replace('.', '')
     target = target_format.lower().replace('.', '')
-    
-    # Get appropriate converter from registry
-    converter = registry.get_converter(source, target)
-    
-    # Perform conversion
-    return converter.convert(input_path, output_path)
+    effective_input = input_path
+    temp_ocr_path = None
+
+    if source == 'pdf':
+        from app.core.config import settings
+        if getattr(settings, 'USE_OCR_FOR_SCANNED_PDF', False):
+            from app.utils.pdf_ocr import is_pdf_scanned, add_ocr_to_pdf
+            if is_pdf_scanned(input_path):
+                try:
+                    fd, temp_ocr_path = tempfile.mkstemp(suffix='.pdf')
+                    os.close(fd)
+                    if add_ocr_to_pdf(input_path, temp_ocr_path):
+                        effective_input = temp_ocr_path
+                except Exception:
+                    pass
+
+    try:
+        converter = registry.get_converter(source, target)
+        return converter.convert(effective_input, output_path)
+    finally:
+        if temp_ocr_path and os.path.exists(temp_ocr_path):
+            try:
+                os.unlink(temp_ocr_path)
+            except OSError:
+                pass
 
 
 def get_supported_conversions() -> dict:
