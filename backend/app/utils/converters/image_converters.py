@@ -45,7 +45,7 @@ class ImageToPDFConverter(BaseConverter):
 
 
 class PDFToImageConverter(BaseConverter):
-    """Convert PDF to PNG image (first page) using PyMuPDF"""
+    """Convert PDF to PNG, JPG or JPEG image (first page) using PyMuPDF"""
     
     @property
     def source_formats(self) -> List[str]:
@@ -53,10 +53,10 @@ class PDFToImageConverter(BaseConverter):
     
     @property
     def target_formats(self) -> List[str]:
-        return ['png']
+        return ['png', 'jpg', 'jpeg']
     
     def convert(self, input_path: str, output_path: str) -> bool:
-        """Convert first page of PDF to PNG with actual rendering"""
+        """Convert first page of PDF to image (PNG/JPG/JPEG) based on output path extension"""
         try:
             self.ensure_directory(output_path)
             
@@ -67,16 +67,15 @@ class PDFToImageConverter(BaseConverter):
                 doc.close()
                 raise ConversionError("PDF has no pages")
             
-            # Render first page at 150 DPI (good quality for screen/print)
             page = doc[0]
             pix = page.get_pixmap(dpi=150)
             pix.save(output_path)
-            doc.close()
             
+            doc.close()
             return True
         except ImportError:
             raise ConversionError(
-                "PDF to PNG requires PyMuPDF. Install with: pip install PyMuPDF"
+                "PDF to image requires PyMuPDF. Install with: pip install PyMuPDF"
             )
         except Exception as e:
             raise ConversionError(f"PDF to image conversion failed: {str(e)}")

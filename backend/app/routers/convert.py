@@ -66,6 +66,8 @@ def _should_use_ecs(file_extension: str, target_format: str, use_ecs_setting: bo
         ('jpg', 'pdf'),       # Imagen→PDF: PIL
         ('jpeg', 'pdf'),      # Imagen→PDF: PIL
         ('pdf', 'png'),       # PDF→Imagen: PyMuPDF
+        ('pdf', 'jpg'),       # PDF→JPG: PyMuPDF
+        ('pdf', 'jpeg'),      # PDF→JPEG: PyMuPDF
         ('pdf', 'txt'),       # PDF→Texto: pypdf
         ('txt', 'docx'),      # Texto→DOCX: python-docx
         ('docx', 'txt'),      # DOCX→Texto: python-docx
@@ -73,7 +75,17 @@ def _should_use_ecs(file_extension: str, target_format: str, use_ecs_setting: bo
         ('html', 'xml'),      # HTML→XML: lxml
         ('htm', 'xml'),       # HTML→XML: lxml
         ('dxf', 'png'),       # DXF→PNG: ezdxf
+        ('dxf', 'jpg'),       # DXF→JPG: ezdxf
+        ('dxf', 'jpeg'),      # DXF→JPEG: ezdxf
         ('png', 'dxf'),       # PNG→DXF: ezdxf
+        ('jpg', 'dxf'),       # JPG→DXF: ezdxf
+        ('jpeg', 'dxf'),      # JPEG→DXF: ezdxf
+        ('dwg', 'png'),       # DWG→PNG: ezdxf odafc
+        ('dwg', 'jpg'),       # DWG→JPG: ezdxf odafc
+        ('dwg', 'jpeg'),      # DWG→JPEG: ezdxf odafc
+        ('png', 'dwg'),       # PNG→DWG: ezdxf odafc
+        ('jpg', 'dwg'),       # JPG→DWG: ezdxf odafc
+        ('jpeg', 'dwg'),      # JPEG→DWG: ezdxf odafc
     ]
     
     if (source, target) in always_local:

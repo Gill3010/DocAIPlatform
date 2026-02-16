@@ -1,9 +1,10 @@
 """
 DWG/DXF ↔ PNG Conversion Converters
-Handles: AutoCAD DWG files to PNG images
-Note: DWG files need to be converted to DXF first (using external tool or service)
+Uses LibreDWG (dwg2dxf, dxf2dwg) or ODA File Converter when available.
 """
 import ezdxf
+import subprocess
+import shutil
 from ezdxf.addons.drawing import RenderContext, Frontend
 from ezdxf.addons.drawing.matplotlib import MatplotlibBackend
 import matplotlib.pyplot as plt
@@ -27,16 +28,15 @@ class DXFToPNGConverter(BaseConverter):
     
     @property
     def target_formats(self) -> List[str]:
-        return ['png']
+        return ['png', 'jpg', 'jpeg']
     
     def convert(self, input_path: str, output_path: str) -> bool:
         """
-        Convert DXF to PNG using ezdxf and matplotlib
+        Convert DXF to PNG, JPG or JPEG using ezdxf and matplotlib
         """
         try:
             self.ensure_directory(output_path)
             
-            # Read DXF file
             try:
                 doc = ezdxf.readfile(input_path)
             except IOError:
@@ -44,36 +44,30 @@ class DXFToPNGConverter(BaseConverter):
             except ezdxf.DXFStructureError:
                 raise ConversionError(f"Archivo DXF inválido o corrupto: {input_path}")
             
-            # Get modelspace
             msp = doc.modelspace()
-            
-            # Create figure for rendering
             fig = plt.figure(figsize=(16, 12), dpi=150)
             ax = fig.add_axes([0, 0, 1, 1])
             
-            # Create render context and backend
             ctx = RenderContext(doc)
             backend = MatplotlibBackend(ax)
-            
-            # Render the DXF
             Frontend(ctx, backend).draw_layout(msp, finalize=True)
             
-            # Save to PNG
-            plt.savefig(output_path, dpi=150, bbox_inches='tight', 
-                       facecolor='white', edgecolor='none')
+            ext = str(output_path).lower().split('.')[-1] if '.' in output_path else 'png'
+            fmt = 'jpeg' if ext in ('jpg', 'jpeg') else 'png'
+            plt.savefig(output_path, dpi=150, bbox_inches='tight',
+                       facecolor='white', edgecolor='none', format=fmt)
             plt.close(fig)
             
             return True
             
         except Exception as e:
-            raise ConversionError(f"Conversión DXF a PNG falló: {str(e)}")
+            raise ConversionError(f"Conversión DXF a imagen falló: {str(e)}")
 
 
-class DWGToPNGConverter(BaseConverter):
+class DWGToImageConverter(BaseConverter):
     """
-    Convert DWG to PNG
-    Note: This is a placeholder that requires external conversion
-    In production, use a service like AutoDesk API, LibreDWG, or ODA File Converter
+    Convert DWG to PNG, JPG or JPEG.
+    Uses LibreDWG (dwg2dxf) or ODA File Converter when available.
     """
     
     @property
@@ -82,25 +76,76 @@ class DWGToPNGConverter(BaseConverter):
     
     @property
     def target_formats(self) -> List[str]:
-        return ['png']
+        return ['png', 'jpg', 'jpeg']
     
+    def _convert_via_libredwg(self, input_path: str, output_path: str) -> bool:
+        """DWG → DXF (dwg2dxf) → imagen (ezdxf/matplotlib)."""
+        dwg2dxf_cmd = shutil.which('dwg2dxf')
+        if not dwg2dxf_cmd:
+            return False
+        self.ensure_directory(output_path)
+        fd, tmp_dxf = tempfile.mkstemp(suffix='.dxf')
+        os.close(fd)
+        try:
+            result = subprocess.run(
+                [dwg2dxf_cmd, '-y', '--minimal', '-o', tmp_dxf, input_path],
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+            if result.returncode != 0:
+                raise ConversionError(
+                    f"dwg2dxf falló: {(result.stderr or result.stdout or '').strip()[:200]}"
+                )
+            doc = ezdxf.readfile(tmp_dxf)
+            msp = doc.modelspace()
+            fig = plt.figure(figsize=(16, 12), dpi=150)
+            ax = fig.add_axes([0, 0, 1, 1])
+            ctx = RenderContext(doc)
+            backend = MatplotlibBackend(ax)
+            Frontend(ctx, backend).draw_layout(msp, finalize=True)
+            ext = str(output_path).lower().split('.')[-1] if '.' in output_path else 'png'
+            fmt = 'jpeg' if ext in ('jpg', 'jpeg') else 'png'
+            plt.savefig(output_path, dpi=150, bbox_inches='tight',
+                        facecolor='white', edgecolor='none', format=fmt)
+            plt.close(fig)
+            return True
+        finally:
+            try:
+                os.unlink(tmp_dxf)
+            except OSError:
+                pass
+
     def convert(self, input_path: str, output_path: str) -> bool:
-        """
-        Convert DWG to PNG
-        
-        NOTE: DWG is a proprietary format. Options:
-        1. Use AutoDesk Forge API (cloud service)
-        2. Use ODA File Converter (command-line tool)
-        3. Use LibreDWG (open source but limited)
-        4. Convert to DXF first, then to PNG
-        
-        For now, this raises an informative error
-        """
+        try:
+            if self._convert_via_libredwg(input_path, output_path):
+                return True
+        except ConversionError:
+            raise
+        except Exception:
+            pass
+        try:
+            from ezdxf.addons import odafc
+            if odafc.is_installed():
+                self.ensure_directory(output_path)
+                doc = odafc.readfile(input_path)
+                msp = doc.modelspace()
+                fig = plt.figure(figsize=(16, 12), dpi=150)
+                ax = fig.add_axes([0, 0, 1, 1])
+                ctx = RenderContext(doc)
+                backend = MatplotlibBackend(ax)
+                Frontend(ctx, backend).draw_layout(msp, finalize=True)
+                ext = str(output_path).lower().split('.')[-1] if '.' in output_path else 'png'
+                fmt = 'jpeg' if ext in ('jpg', 'jpeg') else 'png'
+                plt.savefig(output_path, dpi=150, bbox_inches='tight',
+                            facecolor='white', edgecolor='none', format=fmt)
+                plt.close(fig)
+                return True
+        except Exception:
+            pass
         raise ConversionError(
-            "Conversión DWG → PNG requiere configuración adicional. "
-            "Por favor, convierte tu archivo DWG a DXF primero usando AutoCAD "
-            "o una herramienta de conversión externa. "
-            "Formatos alternativos soportados: DXF → PNG"
+            "Conversión DWG → imagen requiere LibreDWG (dwg2dxf) u ODA File Converter. "
+            "Instala LibreDWG o convierte DWG a DXF manualmente."
         )
 
 
@@ -158,10 +203,10 @@ class PNGToDXFConverter(BaseConverter):
             raise ConversionError(f"Conversión PNG a DXF falló: {str(e)}")
 
 
-class PNGToDWGConverter(BaseConverter):
+class ImageToDWGConverter(BaseConverter):
     """
-    Convert PNG to DWG
-    Note: Similar limitation as DWG to PNG - requires external tools
+    Convert PNG/JPG/JPEG to DWG.
+    Creates DXF with embedded image, then converts to DWG via dxf2dwg (LibreDWG) or ODA.
     """
     
     @property
@@ -172,12 +217,56 @@ class PNGToDWGConverter(BaseConverter):
     def target_formats(self) -> List[str]:
         return ['dwg']
     
-    def convert(self, input_path: str, output_path: str) -> bool:
-        """
-        Convert PNG to DWG - requires external tools
-        """
-        raise ConversionError(
-            "Conversión PNG → DWG requiere configuración adicional. "
-            "Por favor, usa el formato DXF como alternativa: PNG → DXF. "
-            "Luego puedes abrir el DXF en AutoCAD y guardarlo como DWG."
+    def _convert_dxf_to_dwg_via_libredwg(self, tmp_dxf: str, output_path: str) -> bool:
+        dxf2dwg_cmd = shutil.which('dxf2dwg')
+        if not dxf2dwg_cmd:
+            return False
+        result = subprocess.run(
+            [dxf2dwg_cmd, '-y', '-o', output_path, tmp_dxf],
+            capture_output=True,
+            text=True,
+            timeout=60,
         )
+        return result.returncode == 0
+
+    def convert(self, input_path: str, output_path: str) -> bool:
+        self.ensure_directory(output_path)
+        img = Image.open(input_path)
+        width, height = img.size
+        img.close()
+
+        doc = ezdxf.new('R2010')
+        msp = doc.modelspace()
+        image_def = doc.add_image_def(filename=input_path, size_in_pixel=(width, height))
+        scale = 100.0 / width
+        msp.add_image(image_def=image_def, insert=(0, 0),
+                      size_in_units=(width * scale, height * scale))
+
+        with tempfile.NamedTemporaryFile(suffix='.dxf', delete=False) as tmp:
+            doc.saveas(tmp.name)
+            tmp_path = tmp.name
+        try:
+            if self._convert_dxf_to_dwg_via_libredwg(tmp_path, output_path):
+                return True
+            try:
+                from ezdxf.addons import odafc
+                if odafc.is_installed():
+                    odafc.convert(tmp_path, output_path, replace=True)
+                    return True
+            except Exception:
+                pass
+            raise ConversionError(
+                "Conversión DXF → DWG requiere LibreDWG (dxf2dwg) u ODA File Converter. "
+                "Alternativa: usa imagen → DXF."
+            )
+        except ConversionError:
+            raise
+        except Exception as e:
+            raise ConversionError(
+                f"Conversión imagen → DWG falló: {e}. Alternativa: imagen → DXF."
+            ) from e
+        finally:
+            try:
+                os.unlink(tmp_path)
+            except OSError:
+                pass

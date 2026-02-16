@@ -42,7 +42,7 @@ export function FileDropZone({
             </div>
             <div className="file-drop-zone__text">
                 <h3>Haz clic o arrastra el archivo aquí</h3>
-                <p>PNG, JPG, PDF, DOCX, TXT, XML, HTML, DXF, PPTX, XLSX hasta 10MB</p>
+                <p>PNG, JPG, JPEG, PDF, DOCX, TXT, XML, HTML, DXF, DWG, PPTX, XLSX hasta 10MB</p>
                 {hintText && <p className="file-drop-zone__hint">{hintText}</p>}
             </div>
             <div className="file-drop-zone__badges">

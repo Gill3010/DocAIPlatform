@@ -89,7 +89,7 @@ export function useFileSelection(urlFrom: string, urlTo: string) {
                 const defaultTarget = preferredTargetForFile(ext, formats);
                 if (formats.length === 0) {
                     alert(
-                        `Formato ${ext.toUpperCase()} no soportado. Formatos válidos: PNG, JPG, JPEG, PDF, TXT, DOCX, XML, HTML, DXF, PPTX, XLSX`
+                        `Formato ${ext.toUpperCase()} no soportado. Formatos válidos: PNG, JPG, JPEG, PDF, TXT, DOCX, XML, HTML, DXF, DWG, PPTX, XLSX`
                     );
                     return;
                 }

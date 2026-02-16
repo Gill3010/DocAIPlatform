@@ -1,0 +1,14 @@
+=== COPIAR Y PEGAR AL INICIAR NUEVA SESIÓN EN LA NUEVA INSTANCIA ===
+
+Estoy en DocAI Platform (docaiplatform.com) sobre una nueva instancia EC2 (t4g.large, 8 GB RAM) creada desde AMI. La instancia anterior (t4g.medium) sufrió OOM al compilar LibreDWG.
+
+Lee el archivo docs/PROYECTO-CONTEXTO-CONTINUACION.md para el contexto completo del proyecto, lo implementado y lo pendiente.
+
+Tareas pendientes:
+1. Instalar LibreDWG (dwg2dxf, dxf2dwg) desde código en /tmp/libredwg. Usar make -j2 para reducir pico de RAM.
+2. Modificar backend/app/utils/converters/cad_converters.py para usar LibreDWG como fallback cuando ODA no esté disponible:
+   - DWG→imagen: dwg2dxf (subprocess) → DXF → ezdxf/matplotlib
+   - imagen→DWG: crear DXF con ezdxf → dxf2dwg (subprocess)
+3. Verificar que las conversiones DWG funcionen correctamente en docaiplatform.com.
+
+=== FIN DEL PROMPT ===

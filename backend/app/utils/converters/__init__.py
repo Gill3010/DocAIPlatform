@@ -24,7 +24,9 @@ from app.utils.converters.xml_html_converters import (
 )
 from app.utils.converters.cad_converters import (
     DXFToPNGConverter,
-    PNGToDXFConverter
+    PNGToDXFConverter,
+    DWGToImageConverter,
+    ImageToDWGConverter,
 )
 from app.utils.converters.jats_converters import (
     DocxToJATSConverter,
@@ -58,9 +60,11 @@ def register_all_converters():
     registry.register(XMLToHTMLConverter())
     registry.register(HTMLToXMLConverter())
     
-    # CAD converters (DXF <-> PNG)
+    # CAD converters (DXF/DWG <-> PNG/JPG/JPEG)
     registry.register(DXFToPNGConverter())
     registry.register(PNGToDXFConverter())
+    registry.register(DWGToImageConverter())
+    registry.register(ImageToDWGConverter())
     
     # JATS converters (DOCX <-> JATS XML)
     registry.register(DocxToJATSConverter())
@@ -88,6 +92,8 @@ __all__ = [
     'HTMLToXMLConverter',
     'DXFToPNGConverter',
     'PNGToDXFConverter',
+    'DWGToImageConverter',
+    'ImageToDWGConverter',
     'DocxToJATSConverter',
     'JATSToDocxConverter',
     'PDFToPptxConverter',

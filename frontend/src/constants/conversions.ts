@@ -40,10 +40,11 @@ export const SOURCE_LABELS: Record<string, string> = {
     xml: 'XML',
     html: 'HTML',
     htm: 'HTML',
-    png: 'Imagen',
-    jpg: 'Imagen',
-    jpeg: 'Imagen',
-    dxf: 'DXF (CAD)',
+    png: 'PNG',
+    jpg: 'JPG',
+    jpeg: 'JPEG',
+    dxf: 'DXF',
+    dwg: 'DWG',
     pptx: 'PowerPoint',
     xlsx: 'Excel'
 };
@@ -56,7 +57,10 @@ export const TARGET_LABELS: Record<string, string> = {
     xml: 'XML',
     html: 'HTML',
     png: 'PNG',
+    jpg: 'JPG',
+    jpeg: 'JPEG',
     dxf: 'DXF',
+    dwg: 'DWG',
     pptx: 'PowerPoint',
     xlsx: 'Excel'
 };
@@ -64,19 +68,24 @@ export const TARGET_LABELS: Record<string, string> = {
 export const CONVERSION_MAP: Record<string, Array<{ id: string; name: string; icon: LucideIcon }>> = {
     png: [
         { id: 'pdf', name: 'PDF', icon: FileText },
-        { id: 'dxf', name: 'Archivo DXF (CAD)', icon: Ruler }
+        { id: 'dxf', name: 'DXF', icon: Ruler },
+        { id: 'dwg', name: 'DWG', icon: Ruler }
     ],
     jpg: [
         { id: 'pdf', name: 'PDF', icon: FileText },
-        { id: 'dxf', name: 'Archivo DXF (CAD)', icon: Ruler }
+        { id: 'dxf', name: 'DXF', icon: Ruler },
+        { id: 'dwg', name: 'DWG', icon: Ruler }
     ],
     jpeg: [
         { id: 'pdf', name: 'PDF', icon: FileText },
-        { id: 'dxf', name: 'Archivo DXF (CAD)', icon: Ruler }
+        { id: 'dxf', name: 'DXF', icon: Ruler },
+        { id: 'dwg', name: 'DWG', icon: Ruler }
     ],
     pdf: [
         { id: 'docx', name: 'Word', icon: File },
-        { id: 'png', name: 'Imagen PNG', icon: Image },
+        { id: 'png', name: 'PNG', icon: Image },
+        { id: 'jpg', name: 'JPG', icon: Image },
+        { id: 'jpeg', name: 'JPEG', icon: Image },
         { id: 'txt', name: 'TXT', icon: FileText },
         { id: 'pptx', name: 'PowerPoint', icon: Presentation },
         { id: 'xlsx', name: 'Excel', icon: Table }
@@ -100,7 +109,14 @@ export const CONVERSION_MAP: Record<string, Array<{ id: string; name: string; ic
         { id: 'xml', name: 'XML', icon: FileText }
     ],
     dxf: [
-        { id: 'png', name: 'Imagen PNG', icon: Image }
+        { id: 'png', name: 'PNG', icon: Image },
+        { id: 'jpg', name: 'JPG', icon: Image },
+        { id: 'jpeg', name: 'JPEG', icon: Image }
+    ],
+    dwg: [
+        { id: 'png', name: 'PNG', icon: Image },
+        { id: 'jpg', name: 'JPG', icon: Image },
+        { id: 'jpeg', name: 'JPEG', icon: Image }
     ],
     pptx: [
         { id: 'pdf', name: 'PDF', icon: FileText }
@@ -123,6 +139,7 @@ export const CATEGORY_BY_SOURCE: Record<string, ConversionCategory> = {
     jpg: 'image',
     jpeg: 'image',
     dxf: 'image',
+    dwg: 'image',
     pptx: 'document',
     xlsx: 'document'
 };
@@ -141,21 +158,15 @@ export interface DashboardConversionType {
     tooltip?: string;
 }
 
-/**
- * Agrupa formatos de imagen para no duplicar cards (PNG/JPG/JPEG → un solo card "Imagen → X").
- */
+/** Formatos de imagen: cada uno tiene su propia card explícita. */
 const IMAGE_SOURCES = ['png', 'jpg', 'jpeg'];
-
-function canonicalSourceKey(sourceKey: string): string {
-    return IMAGE_SOURCES.includes(sourceKey) ? 'image' : sourceKey;
-}
 
 function alreadyEmitted(
     emitted: Set<string>,
     sourceKey: string,
     targetId: string
 ): boolean {
-    const key = canonicalSourceKey(sourceKey) + '->' + targetId;
+    const key = sourceKey + '->' + targetId;
     if (emitted.has(key)) return true;
     emitted.add(key);
     return false;
@@ -175,10 +186,24 @@ export const CONVERSION_TOOLTIPS: Record<string, string> = {
     'docx-txt': 'Convierte documentos Word a TXT sin formato',
     'txt-docx': 'Convierte archivos TXT en documentos Word con formato básico',
     'docx-xml': 'Convierte documentos Word al formato JATS XML para publicación académica',
-    'image-pdf': 'Convierte imágenes PNG o JPG en documentos PDF de alta calidad',
+    'png-pdf': 'Convierte imágenes PNG en documentos PDF de alta calidad',
+    'jpg-pdf': 'Convierte imágenes JPG en documentos PDF de alta calidad',
+    'jpeg-pdf': 'Convierte imágenes JPEG en documentos PDF de alta calidad',
     'pdf-png': 'Convierte páginas PDF en imágenes PNG de alta resolución',
-    'image-dxf': 'Convierte imágenes a formato DXF para edición en software CAD',
-    'dxf-png': 'Convierte dibujos técnicos DXF en imágenes PNG visualizables',
+    'pdf-jpg': 'Convierte páginas PDF en imágenes JPG',
+    'pdf-jpeg': 'Convierte páginas PDF en imágenes JPEG',
+    'png-dxf': 'Convierte imágenes PNG a formato DXF para software CAD',
+    'png-dwg': 'Convierte imágenes PNG a formato DWG (requiere ODA File Converter)',
+    'jpg-dxf': 'Convierte imágenes JPG a formato DXF para software CAD',
+    'jpg-dwg': 'Convierte imágenes JPG a formato DWG (requiere ODA File Converter)',
+    'jpeg-dxf': 'Convierte imágenes JPEG a formato DXF para software CAD',
+    'jpeg-dwg': 'Convierte imágenes JPEG a formato DWG (requiere ODA File Converter)',
+    'dxf-png': 'Convierte dibujos técnicos DXF en imágenes PNG',
+    'dxf-jpg': 'Convierte dibujos técnicos DXF en imágenes JPG',
+    'dxf-jpeg': 'Convierte dibujos técnicos DXF en imágenes JPEG',
+    'dwg-png': 'Convierte dibujos DWG en imágenes PNG (requiere ODA File Converter)',
+    'dwg-jpg': 'Convierte dibujos DWG en imágenes JPG (requiere ODA File Converter)',
+    'dwg-jpeg': 'Convierte dibujos DWG en imágenes JPEG (requiere ODA File Converter)',
     'xml-html': 'Convierte documentos XML en páginas HTML navegables',
     'html-xml': 'Convierte páginas HTML a formato XML estructurado',
     'xml-docx': 'Convierte archivos JATS XML en documentos Word editables'
@@ -200,22 +225,37 @@ const CONVERSION_ORDER_BY_CATEGORY: Record<ConversionCategory, Array<{ source: s
         // Mid tier - Conversiones de texto
         { source: 'pdf', target: 'txt' },       // #7 PDF → Texto
         { source: 'docx', target: 'txt' },      // #8 Word → Texto
-        { source: 'txt', target: 'docx' },      // #9 Texto → Word
-        // Lower tier - Especializado
-        { source: 'docx', target: 'xml' }       // #10 Word → XML (JATS)
+        { source: 'txt', target: 'docx' }       // #9 Texto → Word
     ],
     image: [
-        // Top tier - Más utilizadas
-        { source: 'png', target: 'pdf' },       // #1 Imagen → PDF (unifica PNG/JPG/JPEG)
-        { source: 'pdf', target: 'png' },       // #2 PDF → PNG
-        // Lower tier - CAD conversions
-        { source: 'png', target: 'dxf' },       // #3 Imagen → DXF
-        { source: 'dxf', target: 'png' }        // #4 DXF → PNG
+        // Imagen → PDF
+        { source: 'png', target: 'pdf' },
+        { source: 'jpg', target: 'pdf' },
+        { source: 'jpeg', target: 'pdf' },
+        // PDF → Imagen
+        { source: 'pdf', target: 'png' },
+        { source: 'pdf', target: 'jpg' },
+        { source: 'pdf', target: 'jpeg' },
+        // Imagen → CAD
+        { source: 'png', target: 'dxf' },
+        { source: 'png', target: 'dwg' },
+        { source: 'jpg', target: 'dxf' },
+        { source: 'jpg', target: 'dwg' },
+        { source: 'jpeg', target: 'dxf' },
+        { source: 'jpeg', target: 'dwg' },
+        // CAD → Imagen
+        { source: 'dxf', target: 'png' },
+        { source: 'dxf', target: 'jpg' },
+        { source: 'dxf', target: 'jpeg' },
+        { source: 'dwg', target: 'png' },
+        { source: 'dwg', target: 'jpg' },
+        { source: 'dwg', target: 'jpeg' },
     ],
     web: [
         { source: 'xml', target: 'html' },      // #1 XML → HTML
         { source: 'html', target: 'xml' },      // #2 HTML → XML
-        { source: 'xml', target: 'docx' }       // #3 XML → Word
+        { source: 'xml', target: 'docx' },      // #3 XML → Word
+        { source: 'docx', target: 'xml' }       // #4 Word → XML (JATS)
     ]
 };
 
@@ -244,10 +284,10 @@ export function getDashboardConversions(): DashboardConversionType[] {
             if (alreadyEmitted(emitted, sourceKey, targetId)) return;
             
             const sourceLabel = SOURCE_LABELS[sourceKey] || sourceKey.toUpperCase();
-            const primarySourceFormat = IMAGE_SOURCES.includes(sourceKey) ? 'png' : sourceKey;
+            const primarySourceFormat = sourceKey;
             
             result.push({
-                id: `${canonicalSourceKey(sourceKey)}-${targetId}`,
+                id: `${sourceKey}-${targetId}`,
                 sourceKey,
                 sourceLabel,
                 targetId: targetInfo.id,
@@ -255,7 +295,7 @@ export function getDashboardConversions(): DashboardConversionType[] {
                 category,
                 icon: targetInfo.icon,
                 primarySourceFormat,
-                tooltip: CONVERSION_TOOLTIPS[`${canonicalSourceKey(sourceKey)}-${targetId}`] || `Convierte ${sourceLabel} a ${targetInfo.name}`
+                tooltip: CONVERSION_TOOLTIPS[`${sourceKey}-${targetId}`] || `Convierte ${sourceLabel} a ${targetInfo.name}`
             });
         });
     });
