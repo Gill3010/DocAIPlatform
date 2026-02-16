@@ -1,9 +1,11 @@
 """
 Limpieza controlada del entorno para pruebas.
-- Elimina todos los usuarios excepto superadministradores (is_superuser=True).
-- Elimina todas las conversiones, documentos, sesiones anónimas, pdf_tool_uses y audit log.
+- Conserva SOLO el super admin: admin@docaiplatform.com
+- Elimina todos los demás usuarios, conversiones, documentos, sesiones anónimas,
+  pdf_tool_uses, admin_audit_log.
+- Resetea créditos del super admin (free_conversion_count, ai_message_count) a 0.
 - Elimina todos los archivos en storage (uploads, converted, pdf_tools) y avatares.
-No modifica lógica ni configuraciones. Ejecutar desde raíz: python backend/cleanup_for_tests.py
+Ejecutar desde raíz: python backend/cleanup_for_tests.py
 """
 import asyncio
 import sys
@@ -15,6 +17,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from sqlalchemy import text
 from backend.app.core.database import AsyncSessionLocal
 
+# Email del único usuario a conservar
+SUPERADMIN_EMAIL = "admin@docaiplatform.com"
 
 # Rutas de almacenamiento (relativas al backend)
 BACKEND_DIR = Path(__file__).resolve().parent
@@ -26,14 +30,28 @@ STATIC_AVATARS = BACKEND_DIR / "static" / "uploads" / "avatars"
 
 async def cleanup_database():
     async with AsyncSessionLocal() as db:
-        # 1) Superadministradores a conservar (solo lectura con SQL)
-        r = await db.execute(text("SELECT id FROM users WHERE is_superuser = 1"))
-        superadmin_ids = [row[0] for row in r.fetchall()]
-        if not superadmin_ids:
-            print("⚠ No hay ningún usuario con is_superuser=True. No se eliminará ningún usuario.")
-            print("  Para tener un superadmin: python backend/set_superadmin.py <email>")
-        else:
-            print(f"✓ Superadministradores a conservar: {superadmin_ids}")
+        # 1) Verificar que existe el super admin a conservar
+        r = await db.execute(
+            text("SELECT id, is_superuser, can_access_admin_panel FROM users WHERE email = :email"),
+            {"email": SUPERADMIN_EMAIL},
+        )
+        row = r.fetchone()
+        if not row:
+            print(f"⚠ ERROR: No existe el usuario {SUPERADMIN_EMAIL}")
+            print("  Créalo antes de ejecutar este script (registro o comando).")
+            print("  Luego márcalo como superadmin: python backend/set_superadmin.py " + SUPERADMIN_EMAIL)
+            sys.exit(1)
+
+        superadmin_id, is_superuser, can_access_admin = row[0], bool(row[1]), bool(row[2])
+        print(f"✓ Super admin a conservar: {SUPERADMIN_EMAIL} (id={superadmin_id})")
+
+        # Asegurar que tenga privilegios de superadmin
+        if not is_superuser or not can_access_admin:
+            await db.execute(
+                text("UPDATE users SET is_superuser = 1, can_access_admin_panel = 1 WHERE id = :id"),
+                {"id": superadmin_id},
+            )
+            print("  → Privilegios de superadmin actualizados.")
 
         # 2) Eliminar en orden por dependencias
         await db.execute(text("DELETE FROM document_permissions"))
@@ -43,13 +61,20 @@ async def cleanup_database():
         await db.execute(text("DELETE FROM admin_audit_log"))
         await db.execute(text("DELETE FROM anonymous_sessions"))
 
-        if superadmin_ids:
-            placeholders = ",".join(str(i) for i in superadmin_ids)
-            await db.execute(text(f"DELETE FROM users WHERE id NOT IN ({placeholders})"))
+        # 3) Eliminar todos los usuarios excepto el super admin
+        await db.execute(text("DELETE FROM users WHERE id != :id"), {"id": superadmin_id})
+
+        # 4) Resetear créditos del super admin (conversiones e IA) a 0
+        await db.execute(
+            text("UPDATE users SET free_conversion_count = 0, ai_message_count = 0 WHERE id = :id"),
+            {"id": superadmin_id},
+        )
 
         await db.commit()
-        print("✓ Base de datos: document_permissions, documents, conversions, pdf_tool_uses, admin_audit_log, anonymous_sessions limpiados.")
-        print("✓ Usuarios no superadministrador eliminados.")
+        print("✓ Base de datos limpiada: document_permissions, documents, conversions,")
+        print("  pdf_tool_uses, admin_audit_log, anonymous_sessions eliminados.")
+        print("✓ Créditos del super admin (conversiones e IA) reseteados a 0.")
+        print(f"✓ Solo permanece el usuario: {SUPERADMIN_EMAIL}")
 
 
 def cleanup_storage_dirs():

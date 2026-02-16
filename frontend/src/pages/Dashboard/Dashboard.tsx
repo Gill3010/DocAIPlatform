@@ -25,7 +25,7 @@ export const Dashboard = () => {
     const { token, user } = useAppStore();
     const { creditsRemaining: anonRemaining, anonymousLimit, anonymousConversionsUsed, sessionId: anonSessionId } = useAnonymousSession();
     const isAnonymous = !token;
-    const isAdminUnlimited = user?.is_superuser === true || user?.can_access_admin_panel === true;
+    const isPremiumUser = user?.is_superuser === true || user?.is_premium === true;
 
     const [stats, setStats] = useState([
         {
@@ -38,7 +38,7 @@ export const Dashboard = () => {
         {
             icon: Clock,
             value: '...',
-            label: 'Créditos Gratis',
+            label: 'Créditos',
             gradient: 'gradient-warning'
         },
         {
@@ -57,6 +57,7 @@ export const Dashboard = () => {
         }
     ]);
 
+
     const [chartData, setChartData] = useState<{
         successRate: number | null;
         creditsRemaining: number;
@@ -66,10 +67,11 @@ export const Dashboard = () => {
 
     useEffect(() => {
         loadStats();
-    }, [isAnonymous, anonRemaining, isAdminUnlimited, anonSessionId]);
+    }, [isAnonymous, anonRemaining, isPremiumUser, anonSessionId]);
 
     const loadStats = async () => {
         if (isAnonymous) {
+            // ... (keep anonymous logic same)
             try {
                 const anonData = await apiService.getAnonymousStats(anonSessionId);
                 setStats([
@@ -83,7 +85,7 @@ export const Dashboard = () => {
                     {
                         icon: Clock,
                         value: `${anonRemaining} de ${anonymousLimit}`,
-                        label: 'Créditos Gratis',
+                        label: 'Créditos',
                         gradient: 'gradient-warning'
                     },
                     {
@@ -107,20 +109,22 @@ export const Dashboard = () => {
                     creditsUnlimited: false
                 });
             } catch {
-                setStats((prev) => [
-                    { ...prev[0], value: String(anonymousConversionsUsed) },
-                    { ...prev[1], value: `${anonRemaining} de ${anonymousLimit}` },
-                    { ...prev[2], value: '—' },
-                    { ...prev[3], value: '—' },
-                ]);
-                setChartData((prev) => ({ ...prev, successRate: null }));
+                // ...
             }
             return;
         }
         try {
+            // REFRESH USER PROFILE TO GET PREMIUM STATUS
+            const updatedUser = await apiService.getCurrentUser();
+            useAppStore.getState().setUser(updatedUser);
+
             const data = await apiService.getUserStats();
-            const creditsDisplay = isAdminUnlimited
-                ? 'Ilimitado'
+            const isPremium = data.credits.is_premium || updatedUser.is_premium || updatedUser.is_superuser;
+            const planId = updatedUser.premium_plan_id || data.user.premium_plan_id;
+            const isUnlimited = updatedUser.is_superuser || (isPremium && planId !== 'Básico');
+
+            const creditsDisplay = isUnlimited
+                ? '∞'
                 : `${data.credits.remaining} de ${data.credits.limit}`;
 
             setStats([
@@ -137,7 +141,7 @@ export const Dashboard = () => {
                 {
                     icon: Clock,
                     value: creditsDisplay,
-                    label: 'Créditos Gratis',
+                    label: 'Créditos',
                     gradient: 'gradient-warning'
                 },
                 {
@@ -165,7 +169,7 @@ export const Dashboard = () => {
                 successRate: data.success_rate,
                 creditsRemaining: data.credits.remaining,
                 creditsTotal: data.credits.limit,
-                creditsUnlimited: isAdminUnlimited
+                creditsUnlimited: isUnlimited
             });
         } catch (error) {
             console.error('Failed to load stats:', error);

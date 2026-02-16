@@ -46,6 +46,11 @@ class AICreditsExhausted(AppException):
         super().__init__(message=message, status_code=403, detail=message)
 
 
+class PremiumFormatRequired(AppException):
+    def __init__(self, message: str = "premium_format_required"):
+        super().__init__(message=message, status_code=403, detail=message)
+
+
 # --- Resources ---
 class NotFound(AppException):
     def __init__(self, message: str = "Resource not found"):

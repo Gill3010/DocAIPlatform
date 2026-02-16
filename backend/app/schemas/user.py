@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional
+from datetime import datetime
 
 class UserBase(BaseModel):
     email: EmailStr
@@ -17,9 +18,14 @@ class UserUpdate(BaseModel):
 class UserResponse(UserBase):
     id: int
     is_active: bool
+    is_premium: bool = False
+    premium_plan_id: Optional[str] = None
     free_conversion_count: int
+    monthly_conversion_count: int = 0
+    last_billing_reset: Optional[datetime] = None
     auth_provider: Optional[str] = None
     avatar_url: Optional[str] = None
+    can_view_payments: bool = False
 
     class Config:
         from_attributes = True

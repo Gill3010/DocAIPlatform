@@ -32,10 +32,14 @@ async def verify_turnstile_token(token: Optional[str], remote_ip: Optional[str] 
         try:
             resp = await client.post(
                 TURNSTILE_VERIFY_URL,
-                json=data,
+                data=data,  # Cloudflare expects form-data
                 timeout=10.0,
             )
             result = resp.json()
+            if not result.get("success"):
+                print(f"Turnstile Failed. Response: {result}")
+                print(f"Data sent: {data}")
             return result.get("success") is True
-        except Exception:
+        except Exception as e:
+            print(f"Turnstile Error: {str(e)}")
             return False

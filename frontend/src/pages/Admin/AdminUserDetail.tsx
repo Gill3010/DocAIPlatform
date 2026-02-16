@@ -11,6 +11,7 @@ type UserDetail = {
     is_active: boolean;
     is_superuser: boolean;
     can_access_admin_panel: boolean;
+    can_view_payments: boolean;
     auth_provider: string | null;
     created_at: string | null;
     free_conversion_count: number;
@@ -73,6 +74,21 @@ export const AdminUserDetail = () => {
         }
     };
 
+    const handleTogglePayments = async () => {
+        if (!user || user.is_superuser) return;
+        setSaving(true);
+        setMessage(null);
+        try {
+            const updated = await apiService.patchAdminUser(user.id, { can_view_payments: !user.can_view_payments });
+            setUser(updated);
+            setMessage(updated.can_view_payments ? 'Permiso para ver pagos concedido.' : 'Permiso para ver pagos revocado.');
+        } catch (err) {
+            setMessage(err instanceof Error ? err.message : 'Error al actualizar');
+        } finally {
+            setSaving(false);
+        }
+    };
+
     if (!id) return <div className="admin-page"><p>ID no válido.</p></div>;
     if (error) return <div className="admin-page"><p className="admin-error">{error}</p><Link to="/admin">← Volver al panel</Link></div>;
     if (!user) return <div className="admin-page"><p>Cargando…</p></div>;
@@ -98,6 +114,8 @@ export const AdminUserDetail = () => {
                     <dd>{user.is_superuser ? 'Sí' : 'No'}</dd>
                     <dt>Acceso panel admin</dt>
                     <dd>{user.can_access_admin_panel ? 'Sí' : 'No'}</dd>
+                    <dt>Ver pagos</dt>
+                    <dd>{user.can_view_payments ? 'Sí' : 'No'}</dd>
                     <dt>Créditos conversión usados</dt>
                     <dd>{user.free_conversion_count}</dd>
                     <dt>Mensajes IA usados</dt>
@@ -122,6 +140,14 @@ export const AdminUserDetail = () => {
                             className="admin-btn"
                         >
                             {user.can_access_admin_panel ? 'Revocar acceso admin' : 'Dar acceso al panel admin'}
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleTogglePayments}
+                            disabled={saving}
+                            className="admin-btn"
+                        >
+                            {user.can_view_payments ? 'Quitar permiso pagos' : 'Permitir ver pagos'}
                         </button>
                     </div>
                 )}

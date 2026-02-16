@@ -1,0 +1,74 @@
+import asyncio
+import os
+import sys
+
+# Add backend to path to import app modules
+sys.path.append(os.path.join(os.getcwd(), 'backend'))
+
+from sqlalchemy import delete, select
+from app.core.database import AsyncSessionLocal as SessionLocal
+from app.models.user import User
+from app.models.payment import Payment
+from app.models.conversion import Conversion
+from app.models.pdf_tool_use import PdfToolUse
+from app.models.anonymous_session import AnonymousSession
+from app.models.document import Document
+from app.models.admin_audit_log import AdminAuditLog
+
+async def cleanup_database():
+    print("🚀 Starting database cleanup...")
+    async with SessionLocal() as db:
+        try:
+            # 1. Get superusers to protect them
+            result = await db.execute(select(User).where(User.is_superuser == True))
+            superusers = result.scalars().all()
+            superuser_ids = [u.id for u in superusers]
+            
+            print(f"🛡️  Found {len(superusers)} superusers to protect: {[u.email for u in superusers]}")
+
+            # 2. Delete Payments
+            print("💰 Deleting all payments...")
+            await db.execute(delete(Payment))
+            
+            # 3. Delete Conversions
+            print("🔄 Deleting all conversions...")
+            await db.execute(delete(Conversion))
+            
+            # 4. Delete PDF Tool Uses
+            print("📄 Deleting all PDF tool uses...")
+            await db.execute(delete(PdfToolUse))
+
+            # 5. Delete Documents
+            print("📂 Deleting all documents...")
+            await db.execute(delete(Document))
+
+            # 6. Delete Anonymous Sessions
+            print("👤 Deleting all anonymous sessions...")
+            await db.execute(delete(AnonymousSession))
+
+            # 7. Delete Audit Logs
+            print("📝 Deleting all audit logs...")
+            await db.execute(delete(AdminAuditLog))
+
+            # 8. Delete Users (except superadmins)
+            print("👥 Deleting users (except superadmins)...")
+            await db.execute(delete(User).where(User.id.not_in(superuser_ids)))
+
+            # 9. Reset free counts for superadmins just in case
+            for su in superusers:
+                su.free_conversion_count = 0
+                su.is_premium = False
+                su.premium_plan_id = None
+                db.add(su)
+
+            await db.commit()
+            print("✨ Cleanup completed successfully!")
+            
+        except Exception as e:
+            await db.rollback()
+            print(f"❌ Error during cleanup: {str(e)}")
+            import traceback
+            traceback.print_exc()
+
+if __name__ == "__main__":
+    asyncio.run(cleanup_database())

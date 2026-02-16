@@ -5,7 +5,8 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(10, 37, 64, 0.2); /* Azul oscuro con transparencia */
+    background: rgba(10, 37, 64, 0.2);
+    /* Azul oscuro con transparencia */
     z-index: calc(var(--z-fixed) - 1);
     animation: fadeIn 0.2s ease-out;
     cursor: pointer;
@@ -15,6 +16,7 @@
     from {
         opacity: 0;
     }
+
     to {
         opacity: 1;
     }
@@ -32,7 +34,8 @@
     flex-direction: column;
     transition: width var(--transition-base);
     z-index: var(--z-fixed);
-    overflow: visible; /* Changed to visible to show tooltips */
+    overflow: visible;
+    /* Changed to visible to show tooltips */
 }
 
 .sidebar.collapsed {
@@ -192,7 +195,8 @@
     pointer-events: none;
     z-index: 9999;
     border-radius: 12px;
-    background: #0A2540; /* Azul oscuro sólido */
+    background: #0A2540;
+    /* Azul oscuro sólido */
     color: #ffffff;
 }
 
@@ -339,6 +343,17 @@
     font-weight: 500;
 }
 
+.premium-label {
+    color: #f59e0b;
+    /* Golden color for premium */
+    font-weight: 500;
+}
+
+.infinity-symbol {
+    font-size: 1.1rem;
+    font-weight: bold;
+}
+
 .sidebar.collapsed .user-details {
     opacity: 0;
     width: 0;
@@ -370,6 +385,7 @@
         opacity: 0;
         transform: translateY(10px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -432,6 +448,7 @@
 
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
+
     /* More visible backdrop on mobile */
     .sidebar-backdrop {
         background: rgba(10, 37, 64, 0.5);

@@ -11,6 +11,7 @@ class AdminUserListItem(BaseModel):
     is_active: bool
     is_superuser: bool
     can_access_admin_panel: bool
+    can_view_payments: bool
     auth_provider: Optional[str] = None
     created_at: Optional[datetime] = None
 
@@ -33,6 +34,7 @@ class AdminUserUpdate(BaseModel):
     """Body para PATCH /admin/users/{id}."""
     is_active: Optional[bool] = None
     can_access_admin_panel: Optional[bool] = None
+    can_view_payments: Optional[bool] = None
 
 
 class AdminUsersListResponse(BaseModel):
@@ -87,6 +89,32 @@ class AdminActivityItem(BaseModel):
 class AdminActivityListResponse(BaseModel):
     """Respuesta paginada de GET /admin/activity."""
     items: List[AdminActivityItem]
+    total: int
+    page: int
+    size: int
+    pages: int
+
+
+class AdminPaymentListItem(BaseModel):
+    """Item del listado GET /admin/payments."""
+    id: int
+    user_id: int
+    user_email: Optional[str] = None
+    provider: str
+    transaction_id: Optional[str] = None
+    amount: float
+    currency: str
+    status: str
+    plan_id: Optional[str] = None
+    created_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class AdminPaymentsListResponse(BaseModel):
+    """Respuesta paginada de GET /admin/payments."""
+    items: List[AdminPaymentListItem]
     total: int
     page: int
     size: int

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { apiService } from '../../services/api';
+import { useAppStore } from '../../stores/appStore';
 import { AuthProviderIcon } from '../../components/AuthProviderIcon/AuthProviderIcon';
 import './Admin.css';
 
@@ -11,11 +12,13 @@ type AdminUserItem = {
     is_active: boolean;
     is_superuser: boolean;
     can_access_admin_panel: boolean;
+    can_view_payments: boolean;
     auth_provider: string | null;
     created_at: string | null;
 };
 
 export const Admin = () => {
+    const { user: currentUser } = useAppStore();
     const [stats, setStats] = useState<{
         users: { total: number; active: number };
         conversions: { total: number; completed: number };
@@ -39,6 +42,8 @@ export const Admin = () => {
             .catch(() => setUsers(null));
     }, [page, emailFilter]);
 
+    const canSeePayments = currentUser?.is_superuser || currentUser?.can_view_payments;
+
     return (
         <div className="admin-page">
             <h1>Panel de administración</h1>
@@ -46,6 +51,12 @@ export const Admin = () => {
                 <Link to="/dashboard">← Volver al dashboard</Link>
                 <span className="admin-nav-sep">·</span>
                 <Link to="/admin/conversions">Conversiones</Link>
+                {canSeePayments && (
+                    <>
+                        <span className="admin-nav-sep">·</span>
+                        <Link to="/admin/payments">Pagos</Link>
+                    </>
+                )}
                 <span className="admin-nav-sep">·</span>
                 <Link to="/admin/activity">Actividad</Link>
             </p>

@@ -21,7 +21,7 @@ interface AIAssistantFABProps {
 
 export const AIAssistantFAB = ({ isOpen, onOpenChange }: AIAssistantFABProps) => {
     const { token, user } = useAppStore();
-    const isAdminUnlimited = user?.is_superuser === true || user?.can_access_admin_panel === true;
+    const isAdminUnlimited = user?.is_superuser === true || user?.can_access_admin_panel === true || user?.is_premium === true;
     const { sessionId, syncFromCreditsRemaining } = useAnonymousSession();
     const [isMinimized, setIsMinimized] = useState(false);
     const [input, setInput] = useState('');
@@ -187,101 +187,101 @@ export const AIAssistantFAB = ({ isOpen, onOpenChange }: AIAssistantFABProps) =>
                 role="complementary"
                 aria-label="Asistente de IA"
             >
-                    {/* Header */}
-                    <div className="ai-chat-header">
-                        <div className="ai-chat-header-left">
-                            <div className="ai-chat-avatar-wrapper">
-                                <img
-                                    src="/ai-assistant-avatar.png"
-                                    alt=""
-                                    className="ai-chat-avatar"
-                                />
-                            </div>
-                            <div>
-                                <h3>Asistente de IA</h3>
-                                <span className="ai-chat-status">En línea • {isAdminUnlimited ? 'Ilimitado' : `${credits} créditos`}</span>
-                            </div>
+                {/* Header */}
+                <div className="ai-chat-header">
+                    <div className="ai-chat-header-left">
+                        <div className="ai-chat-avatar-wrapper">
+                            <img
+                                src="/ai-assistant-avatar.png"
+                                alt=""
+                                className="ai-chat-avatar"
+                            />
                         </div>
-                        <div className="ai-chat-header-actions">
-                            <button
-                                onClick={toggleMinimize}
-                                className="ai-chat-btn"
-                                title={isMinimized ? 'Maximizar' : 'Minimizar'}
-                            >
-                                {isMinimized ? <Maximize2 size={18} /> : <Minimize2 size={18} />}
-                            </button>
-<button
-                                    onClick={handleClose}
-                                    className="ai-chat-btn"
-                                    title="Cerrar"
-                                >
-                                    <X size={18} />
-                                </button>
+                        <div>
+                            <h3>Asistente de IA</h3>
+                            <span className="ai-chat-status">En línea • {isAdminUnlimited ? '∞' : `${credits} créditos`}</span>
                         </div>
                     </div>
+                    <div className="ai-chat-header-actions">
+                        <button
+                            onClick={toggleMinimize}
+                            className="ai-chat-btn"
+                            title={isMinimized ? 'Maximizar' : 'Minimizar'}
+                        >
+                            {isMinimized ? <Maximize2 size={18} /> : <Minimize2 size={18} />}
+                        </button>
+                        <button
+                            onClick={handleClose}
+                            className="ai-chat-btn"
+                            title="Cerrar"
+                        >
+                            <X size={18} />
+                        </button>
+                    </div>
+                </div>
 
-                    {!isMinimized && (
-                        <>
-                            {/* Messages */}
-                            <div className="ai-chat-messages">
-                                {messages.map((message) => (
-                                    <div
-                                        key={message.id}
-                                        className={`ai-chat-message ${message.role}`}
-                                    >
-                                        <div className="ai-chat-message-content">
-                                            {message.content}
-                                        </div>
-                                        <div className="ai-chat-message-time">
-                                            {formatTime(message.timestamp)}
-                                        </div>
+                {!isMinimized && (
+                    <>
+                        {/* Messages */}
+                        <div className="ai-chat-messages">
+                            {messages.map((message) => (
+                                <div
+                                    key={message.id}
+                                    className={`ai-chat-message ${message.role}`}
+                                >
+                                    <div className="ai-chat-message-content">
+                                        {message.content}
                                     </div>
-                                ))}
-                                {loading && (
-                                    <div className="ai-chat-message assistant">
+                                    <div className="ai-chat-message-time">
+                                        {formatTime(message.timestamp)}
+                                    </div>
+                                </div>
+                            ))}
+                            {loading && (
+                                <div className="ai-chat-message assistant">
                                     <div className="ai-chat-message-content">
                                         <Loader className="ai-chat-loader" size={16} />
                                         <span>IA está pensando...</span>
                                     </div>
-                                    </div>
-                                )}
-                                <div ref={messagesEndRef} />
-                            </div>
+                                </div>
+                            )}
+                            <div ref={messagesEndRef} />
+                        </div>
 
-                            {/* Input */}
-                            <div className="ai-chat-input-container">
-                                {credits <= 0 && !isAdminUnlimited && (
-                                    <div className="ai-chat-warning">
-                                        ⚠️ {token ? 'No quedan créditos. Actualiza para continuar.' : 'No quedan créditos. Regístrate para obtener más.'}
-                                    </div>
-                                )}
-                                <form onSubmit={handleSubmit} className="ai-chat-input-form">
-                                    <input
-                                        ref={inputRef}
-                                        type="text"
-                                        value={input}
-                                        onChange={(e) => setInput(e.target.value)}
-                                        onKeyPress={handleKeyPress}
-                                        placeholder="Pregúntame lo que quieras..."
-                                        className="ai-chat-input"
-                                        disabled={loading}
-                                    />
-                                    <button
-                                        type="submit"
-                                        disabled={!input.trim() || loading}
-                                        className="ai-chat-send-btn"
-                                    >
-                                        {loading ? (
-                                            <Loader className="ai-chat-loader" size={20} />
-                                        ) : (
-                                            <Send size={20} />
-                                        )}
-                                    </button>
-                                </form>
-                            </div>
-                        </>
-                    )}
-                </div>
-            </>
+                        {/* Input */}
+                        <div className="ai-chat-input-container">
+                            {credits <= 0 && !isAdminUnlimited && (
+                                <div className="ai-chat-warning">
+                                    ⚠️ {token ? 'No quedan créditos. Actualiza para continuar.' : 'No quedan créditos. Regístrate para obtener más.'}
+                                </div>
+                            )}
+                            <form onSubmit={handleSubmit} className="ai-chat-input-form">
+                                <input
+                                    ref={inputRef}
+                                    type="text"
+                                    value={input}
+                                    onChange={(e) => setInput(e.target.value)}
+                                    onKeyPress={handleKeyPress}
+                                    placeholder="Pregúntame lo que quieras..."
+                                    className="ai-chat-input"
+                                    disabled={loading}
+                                />
+                                <button
+                                    type="submit"
+                                    disabled={!input.trim() || loading}
+                                    className="ai-chat-send-btn"
+                                >
+                                    {loading ? (
+                                        <Loader className="ai-chat-loader" size={20} />
+                                    ) : (
+                                        <Send size={20} />
+                                    )}
+                                </button>
+                            </form>
+                        </div>
+                    </>
+                )}
+            </div>
+        </>
     );
 };

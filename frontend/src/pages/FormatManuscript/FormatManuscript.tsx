@@ -53,13 +53,26 @@ export const FormatManuscript = () => {
         return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
     };
 
-    const creditsLimit = isAnonymous ? anonymousLimit : 5;
-    const authCreditsRemaining = user ? Math.max(0, 5 - (user.free_conversion_count ?? 0)) : 0;
+    const creditsLimit = isAnonymous ? anonymousLimit : (user?.premium_plan_id === 'Básico' ? 50 : 5);
+    const authCreditsRemaining = user
+        ? (user.premium_plan_id === 'Básico'
+            ? Math.max(0, 50 - (user.monthly_conversion_count ?? 0))
+            : Math.max(0, 5 - (user.free_conversion_count ?? 0)))
+        : 0;
     const displayRemaining = isAnonymous ? creditsRemaining : authCreditsRemaining;
     const creditsLabel =
-        user?.is_superuser || user?.can_access_admin_panel
+        user?.is_superuser || user?.can_access_admin_panel || (user?.is_premium && user?.premium_plan_id !== 'Básico')
             ? 'Ilimitado'
             : `${displayRemaining} de ${creditsLimit} créditos`;
+
+    const handleFormat = () => {
+        const isPro = user?.is_superuser || (user?.is_premium && (user?.premium_plan_id === 'Pro' || user?.premium_plan_id === 'Empresa'));
+        if (!isPro) {
+            setShowUpgradeModal(true);
+        } else {
+            alert("¡Genial! Tienes acceso a esta función Pro. El motor de formateo automático estará disponible para procesar tus archivos muy pronto.");
+        }
+    };
 
     return (
         <div className="format-manuscript-page">
@@ -71,6 +84,8 @@ export const FormatManuscript = () => {
             <UpgradeModal
                 isOpen={showUpgradeModal}
                 onClose={() => setShowUpgradeModal(false)}
+                title={!user?.is_premium || user?.premium_plan_id === 'Básico' ? "Esta función requiere el Plan Pro" : undefined}
+                description={!user?.is_premium || user?.premium_plan_id === 'Básico' ? "El formateo de manuscritos es una herramienta avanzada disponible exclusivamente para usuarios Pro y Empresa." : undefined}
             />
             <div className="format-header">
                 <div>
@@ -83,7 +98,7 @@ export const FormatManuscript = () => {
                             {creditsLabel}
                         </span>
                     )}
-                    <span className="status-badge coming-soon">Próximamente</span>
+                    <span className="status-badge coming-soon">Beta Pro</span>
                 </div>
             </div>
 
@@ -140,7 +155,7 @@ export const FormatManuscript = () => {
                                 <AlertCircle size={32} />
                             </div>
                             <h3>Opciones de Formato</h3>
-                            <p>Los parámetros de formato se configurarán próximamente</p>
+                            <p>Los parámetros de formato se configurarán en la siguiente fase</p>
                             <div className="placeholder-items">
                                 <div className="placeholder-item">📄 Márgenes y espaciado</div>
                                 <div className="placeholder-item">📝 Fuente y tamaño</div>
@@ -149,9 +164,9 @@ export const FormatManuscript = () => {
                             </div>
                         </div>
 
-                        <button className="format-btn" disabled>
+                        <button className="format-btn" onClick={handleFormat}>
                             <FileText size={20} />
-                            Formatear Manuscrito (Próximamente)
+                            Formatear Manuscrito
                         </button>
                     </div>
                 )}

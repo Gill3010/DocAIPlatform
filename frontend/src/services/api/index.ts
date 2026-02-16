@@ -34,6 +34,7 @@ export const apiService = {
     getAdminUser: admin.getAdminUser,
     patchAdminUser: admin.patchAdminUser,
     getAdminConversions: admin.getAdminConversions,
+    getAdminPayments: admin.getAdminPayments,
     getAdminActivity: admin.getAdminActivity,
     sendChatMessage: ai.sendChatMessage,
     getAICredits: ai.getAICredits,

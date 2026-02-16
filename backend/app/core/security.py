@@ -174,3 +174,25 @@ async def get_current_admin_user(
             detail="Admin access required",
         )
     return current_user
+
+
+async def get_current_payment_viewer(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    """
+    Dependency that requires the user to have payment viewing permissions.
+    Only superadmins or users with explicit can_view_payments flag can access.
+    """
+    is_super = current_user.is_superuser
+    # Also check settings for superadmin emails if is_superuser isn't set
+    if not is_super and settings.SUPERADMIN_EMAILS:
+        admin_email_list = [e.strip() for e in settings.SUPERADMIN_EMAILS.split(",") if e.strip()]
+        if current_user.email in admin_email_list:
+            is_super = True
+
+    if not is_super and not getattr(current_user, "can_view_payments", False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to view payments.",
+        )
+    return current_user

@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     # Límites de AI Assistant (comparte pool con conversiones)
     FREE_TIER_AI_CREDITS: int = 5  # Mismo pool que conversiones para usuarios registrados
     ANONYMOUS_AI_LIMIT: int = 3  # Mismo límite que conversiones para anónimos
+    
+    # Formatos Premium (requieren plan Básico o superior)
+    PREMIUM_FORMATS: list[str] = ["xml", "dwg", "dxf"]
 
     # Security
     SECRET_KEY: str = "your-super-secret-key-change-in-production"
@@ -42,6 +45,11 @@ class Settings(BaseSettings):
 
     # Cloudflare Turnstile (CAPTCHA)
     TURNSTILE_SECRET_KEY: str = ""
+
+    # Payments - PayPal
+    PAYPAL_CLIENT_ID: str = ""
+    PAYPAL_CLIENT_SECRET: str = ""
+    PAYPAL_MODE: str = "sandbox"  # 'sandbox' or 'live'
 
     # Admin: emails que siempre se consideran superadmin (separados por coma)
     SUPERADMIN_EMAILS: str = ""

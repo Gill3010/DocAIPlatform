@@ -38,6 +38,7 @@ from app.schemas.token import (
     LinkAnonymousSessionRequest,
     LinkAnonymousSessionResponse,
     Token,
+    RegisterResponse,
 )
 from app.schemas.user import UserCreate, UserResponse
 
@@ -55,13 +56,12 @@ FACEBOOK_SCOPES = "email,public_profile"
 
 @router.post(
     "/register",
-    response_model=UserResponse,
+    response_model=RegisterResponse,
     summary="Registrar usuario",
-    description="Crea una cuenta con email y contraseña. El usuario queda activo y puede hacer login. Requiere token Turnstile si está configurado.",
+    description="Crea una cuenta con email y contraseña. El usuario queda activo y recibe un token de acceso inmediato. Requiere token Turnstile si está configurado.",
     responses={
-        200: {"description": "Usuario creado correctamente"},
-        400: {"description": "Email ya registrado, datos inválidos o verificación Turnstile fallida"},
-        422: {"description": "Error de validación (formato email, longitud contraseña, etc.)"},
+        200: {"description": "Usuario creado y logueado correctamente"},
+        400: {"description": "Email ya registrado o verificación Turnstile fallida"},
     },
 )
 async def register(
@@ -75,9 +75,22 @@ async def register(
         remote_ip = request.client.host if request.client else None
         if not await verify_turnstile_token(user.turnstile_token, remote_ip):
             raise HTTPException(status_code=400, detail="Verificación de seguridad fallida. Intenta de nuevo.")
-    return await svc_register_user(
+    
+    new_user = await svc_register_user(
         db, email=user.email, password=user.password, full_name=user.full_name
     )
+    
+    # Generate token immediately
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": new_user.email}, expires_delta=access_token_expires
+    )
+    
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "user": new_user
+    }
 
 @router.post(
     "/login",

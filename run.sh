@@ -35,16 +35,18 @@ else
   BACKEND_VENV="${PWD}/backend/venv"
 fi
 source "$BACKEND_VENV/bin/activate"
+pip install -r backend/requirements.txt > /dev/null 2>&1 || true
 export PYTHONPATH="${PWD}:${PYTHONPATH}"
 
 [ -f backend/sql_app.db ] || { echo "🗄️  Inicializando BD..."; (cd . && source "$BACKEND_VENV/bin/activate" && export PYTHONPATH="${PWD}:${PYTHONPATH}" && python backend/init_db.py) 2>/dev/null || true; }
 
-echo "🗄️  Migraciones (freemium, avatar, ai_credits, admin_panel)..."
+echo "🗄️  Migraciones (freemium, avatar, ai_credits, admin_panel, payments)..."
 python backend/migrate_freemium.py 2>/dev/null || true
 python backend/migrate_avatar.py 2>/dev/null || true
 python backend/migrate_ai_credits.py 2>/dev/null || true
 python backend/migrate_admin_panel.py 2>/dev/null || true
 python backend/migrate_admin_audit.py 2>/dev/null || true
+python backend/migrate_payments.py 2>/dev/null || true
 
 # Ruta absoluta al uvicorn (nohup no hereda el venv activado)
 (cd backend && nohup "$BACKEND_VENV/bin/uvicorn" main:app --host 0.0.0.0 --port 8000 > /tmp/docai-backend.log 2>&1 &)

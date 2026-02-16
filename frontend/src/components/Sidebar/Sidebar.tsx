@@ -163,9 +163,25 @@ export const Sidebar = () => {
                                         <p className="user-name">{user.full_name || 'Usuario'}</p>
                                         <p className="user-email">{user.email}</p>
                                         <p className="user-credits">
-                                            {(user.is_superuser || user.can_access_admin_panel)
-                                                ? 'Ilimitado'
-                                                : `${Math.max(0, 5 - user.free_conversion_count)} de 5 créditos`}
+                                            {(() => {
+                                                const isUnlimited = user.is_superuser || (user.is_premium && user.premium_plan_id !== 'Básico');
+                                                if (isUnlimited) {
+                                                    return (
+                                                        <span className="premium-label">
+                                                            {user.premium_plan_id || 'Premium'} • <span className="infinity-symbol">∞</span> créditos
+                                                        </span>
+                                                    );
+                                                }
+                                                if (user.is_premium && user.premium_plan_id === 'Básico') {
+                                                    const remaining = 50 - (user.monthly_conversion_count || 0);
+                                                    return (
+                                                        <span className="premium-label">
+                                                            Básico • {Math.max(0, remaining)} créditos
+                                                        </span>
+                                                    );
+                                                }
+                                                return `${Math.max(0, 5 - user.free_conversion_count)} de 5 créditos`;
+                                            })()}
                                         </p>
                                     </div>
                                     <ChevronUp

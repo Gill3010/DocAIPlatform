@@ -8,10 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 
 from app.core.database import get_db
-from app.core.security import get_current_admin_user
+from app.core.security import get_current_admin_user, get_current_payment_viewer
 from app.models.user import User
 from app.models.conversion import Conversion
 from app.models.admin_audit_log import AdminAuditLog
+from app.models.payment import Payment
 from app.schemas.admin import (
     AdminUserListItem,
     AdminUserDetail,
@@ -21,6 +22,8 @@ from app.schemas.admin import (
     AdminConversionsListResponse,
     AdminActivityItem,
     AdminActivityListResponse,
+    AdminPaymentListItem,
+    AdminPaymentsListResponse,
 )
 from app.utils.admin_audit import log_admin_action
 from datetime import datetime, date
@@ -39,6 +42,7 @@ def _user_to_list_item(u: User) -> AdminUserListItem:
         is_active=u.is_active,
         is_superuser=getattr(u, "is_superuser", False),
         can_access_admin_panel=getattr(u, "can_access_admin_panel", False),
+        can_view_payments=getattr(u, "can_view_payments", False),
         auth_provider=getattr(u, "auth_provider", None),
         created_at=getattr(u, "created_at", None),
     )
@@ -191,6 +195,7 @@ async def admin_get_user(
         is_active=user.is_active,
         is_superuser=getattr(user, "is_superuser", False),
         can_access_admin_panel=getattr(user, "can_access_admin_panel", False),
+        can_view_payments=getattr(user, "can_view_payments", False),
         auth_provider=getattr(user, "auth_provider", None),
         created_at=getattr(user, "created_at", None),
         free_conversion_count=getattr(user, "free_conversion_count", 0),
@@ -252,6 +257,22 @@ async def admin_update_user(
             str(user_id),
             f"can_access_admin_panel={body.can_access_admin_panel}",
         )
+    if body.can_view_payments is not None:
+        # Only superadmins can assign payment viewing rights
+        if not current_user.is_superuser:
+             raise HTTPException(
+                status_code=403,
+                detail="Only superadmins can manage payment permissions.",
+            )
+        user.can_view_payments = body.can_view_payments
+        await log_admin_action(
+            db,
+            current_user.id,
+            "payments_revoke" if not body.can_view_payments else "payments_assign",
+            "user",
+            str(user_id),
+            f"can_view_payments={body.can_view_payments}",
+        )
 
     await db.commit()
     await db.refresh(user)
@@ -282,6 +303,7 @@ async def admin_update_user(
         is_active=user.is_active,
         is_superuser=getattr(user, "is_superuser", False),
         can_access_admin_panel=getattr(user, "can_access_admin_panel", False),
+        can_view_payments=getattr(user, "can_view_payments", False),
         auth_provider=getattr(user, "auth_provider", None),
         created_at=getattr(user, "created_at", None),
         free_conversion_count=getattr(user, "free_conversion_count", 0),
@@ -398,3 +420,50 @@ async def admin_list_activity(
         for log in logs
     ]
     return AdminActivityListResponse(items=items, total=total, page=page, size=size, pages=pages)
+
+
+@router.get(
+    "/payments",
+    response_model=AdminPaymentsListResponse,
+    summary="Listar pagos",
+    description="Lista todos los pagos realizados con detalles de usuario y transacción. Requiere JWT de admin.",
+    responses={
+        200: {"description": "items, total, page, size, pages"},
+        401: {"description": "Token ausente o inválido"},
+        403: {"description": "Usuario sin acceso al panel admin"},
+    },
+)
+async def admin_list_payments(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_payment_viewer),
+    page: int = Query(1, ge=1),
+    size: int = Query(DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE),
+):
+    """Lista todos los pagos realizados con detalles de usuario."""
+    base = select(Payment, User).join(User, Payment.user_id == User.id)
+    count_stmt = select(func.count(Payment.id))
+
+    total_result = await db.execute(count_stmt)
+    total = total_result.scalar() or 0
+    offset = (page - 1) * size
+    base = base.order_by(Payment.created_at.desc()).offset(offset).limit(size)
+    result = await db.execute(base)
+    rows = result.all()
+    
+    pages = (total + size - 1) // size if total else 0
+    items = [
+        AdminPaymentListItem(
+            id=p.id,
+            user_id=p.user_id,
+            user_email=u.email,
+            provider=p.provider,
+            transaction_id=p.transaction_id,
+            amount=float(p.amount),
+            currency=p.currency,
+            status=p.status,
+            plan_id=p.plan_id,
+            created_at=p.created_at,
+        )
+        for p, u in rows
+    ]
+    return AdminPaymentsListResponse(items=items, total=total, page=page, size=size, pages=pages)

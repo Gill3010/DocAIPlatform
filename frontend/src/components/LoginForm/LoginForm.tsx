@@ -251,8 +251,8 @@ export const LoginForm = ({
                 setStorageToken(response.access_token);
                 await completeLogin();
             } else {
-                await apiService.register({ email, password, full_name: fullName, turnstile_token: turnstile });
-                const response = await apiService.login({ username: email, password, turnstile_token: turnstile });
+                const response = await apiService.register({ email, password, full_name: fullName, turnstile_token: turnstile });
+                // Use the token returned directly from registration
                 setToken(response.access_token);
                 setStorageToken(response.access_token);
                 await completeLogin();
@@ -263,8 +263,8 @@ export const LoginForm = ({
                 message.includes('already registered')
                     ? 'Este correo ya está registrado. Inicia sesión o usa otro email.'
                     : message.includes('Incorrect')
-                      ? 'Email o contraseña incorrectos. Verifica tus credenciales.'
-                      : message
+                        ? 'Email o contraseña incorrectos. Verifica tus credenciales.'
+                        : message
             );
             setTurnstileToken(null);
             if (TURNSTILE_SITE_KEY && turnstileWidgetIdRef.current != null && typeof window !== 'undefined' && (window as Window & { turnstile?: { reset: (id: string) => void } }).turnstile) {
@@ -404,8 +404,8 @@ export const LoginForm = ({
                                         showPasswordMatchError
                                             ? 'confirm-password-error'
                                             : showPasswordMatchSuccess
-                                              ? 'confirm-password-success'
-                                              : undefined
+                                                ? 'confirm-password-success'
+                                                : undefined
                                     }
                                 />
                                 <button

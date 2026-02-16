@@ -29,6 +29,7 @@ const Admin = lazy(() => import('./pages/Admin/Admin').then(m => ({ default: m.A
 const AdminUserDetail = lazy(() => import('./pages/Admin/AdminUserDetail').then(m => ({ default: m.AdminUserDetail })));
 const AdminConversions = lazy(() => import('./pages/Admin/AdminConversions').then(m => ({ default: m.AdminConversions })));
 const AdminActivity = lazy(() => import('./pages/Admin/AdminActivity').then(m => ({ default: m.AdminActivity })));
+const AdminPayments = lazy(() => import('./pages/Admin/AdminPayments').then(m => ({ default: m.AdminPayments })));
 const Collaboration = lazy(() => import('./pages/Collaboration/Collaboration').then(m => ({ default: m.Collaboration })));
 const MyDocuments = lazy(() => import('./pages/MyDocuments/MyDocuments').then(m => ({ default: m.MyDocuments })));
 
@@ -92,31 +93,33 @@ function App() {
       <BrowserRouter>
         <Suspense fallback={<PageFallback />}>
           <Routes>
-          <Route path="/login" element={<LoginRoute />} />
-          <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="/auth/callback/facebook" element={<AuthCallbackFacebook />} />
-          <Route path="/admin" element={<RequireAdmin><Admin /></RequireAdmin>} />
-          <Route path="/admin/users/:id" element={<RequireAdmin><AdminUserDetail /></RequireAdmin>} />
-          <Route path="/admin/conversions" element={<RequireAdmin><AdminConversions /></RequireAdmin>} />
-          <Route path="/admin/activity" element={<RequireAdmin><AdminActivity /></RequireAdmin>} />
-          <Route path="/" element={<DashboardLayout />}>
-            <Route index element={<Navigate to="/dashboard" />} />
-            <Route path="dashboard" element={<Dashboard />} />
-            <Route path="convert" element={<Convert />} />
-            <Route path="pdf-tools" element={<PdfTools />} />
-            <Route path="history" element={<RequireAuth><History /></RequireAuth>} />
-            <Route path="format-manuscript" element={<FormatManuscript />} />
-            <Route path="terms-of-use" element={<TermsOfUse />} />
-            <Route path="privacy-policy" element={<PrivacyPolicy />} />
-            <Route path="data-deletion" element={<DataDeletion />} />
-            <Route path="pricing" element={<Pricing />} />
-            <Route path="security" element={<Security />} />
-            <Route path="features" element={<Features />} />
-            <Route path="about" element={<About />} />
-            <Route path="settings" element={<RequireAuth><EditProfile /></RequireAuth>} />
-            <Route path="documents" element={<RequireAuth><MyDocuments /></RequireAuth>} />
-            <Route path="collab/:id" element={<RequireAuth><Collaboration /></RequireAuth>} />
-          </Route>
+            <Route path="/login" element={<LoginRoute />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/auth/callback/facebook" element={<AuthCallbackFacebook />} />
+            <Route path="/admin" element={<RequireAdmin><Admin /></RequireAdmin>} />
+            <Route path="/admin/users" element={<RequireAdmin><Admin /></RequireAdmin>} />
+            <Route path="/admin/users/:id" element={<RequireAdmin><AdminUserDetail /></RequireAdmin>} />
+            <Route path="/admin/conversions" element={<RequireAdmin><AdminConversions /></RequireAdmin>} />
+            <Route path="/admin/activity" element={<RequireAdmin><AdminActivity /></RequireAdmin>} />
+            <Route path="/admin/payments" element={<RequireAdmin><AdminPayments /></RequireAdmin>} />
+            <Route path="/" element={<DashboardLayout />}>
+              <Route index element={<Navigate to="/dashboard" />} />
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="convert" element={<Convert />} />
+              <Route path="pdf-tools" element={<PdfTools />} />
+              <Route path="history" element={<RequireAuth><History /></RequireAuth>} />
+              <Route path="format-manuscript" element={<FormatManuscript />} />
+              <Route path="terms-of-use" element={<TermsOfUse />} />
+              <Route path="privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="data-deletion" element={<DataDeletion />} />
+              <Route path="pricing" element={<Pricing />} />
+              <Route path="security" element={<Security />} />
+              <Route path="features" element={<Features />} />
+              <Route path="about" element={<About />} />
+              <Route path="settings" element={<RequireAuth><EditProfile /></RequireAuth>} />
+              <Route path="documents" element={<RequireAuth><MyDocuments /></RequireAuth>} />
+              <Route path="collab/:id" element={<RequireAuth><Collaboration /></RequireAuth>} />
+            </Route>
           </Routes>
         </Suspense>
       </BrowserRouter>

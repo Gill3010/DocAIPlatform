@@ -40,3 +40,12 @@ class LinkAnonymousSessionRequest(BaseModel):
 class LinkAnonymousSessionResponse(BaseModel):
     credits_used: int
     credits_remaining: int
+
+
+from app.schemas.user import UserResponse
+
+
+class RegisterResponse(BaseModel):
+    user: Optional[UserResponse] = None
+    access_token: str
+    token_type: str

@@ -1,4 +1,4 @@
-import type { LoginCredentials, RegisterData, AuthToken, User } from '../../types';
+import type { LoginCredentials, RegisterData, AuthToken, User, RegisterResponse } from '../../types';
 import { API_URL } from './config';
 import { apiRequest } from './request';
 import { getToken } from '../storageService';
@@ -50,7 +50,7 @@ export async function facebookAuth(data: { code: string; state: string; redirect
     return response.json();
 }
 
-export async function register(data: RegisterData): Promise<User> {
+export async function register(data: RegisterData): Promise<RegisterResponse> {
     const body: Record<string, unknown> = {
         email: data.email,
         password: data.password,
@@ -59,7 +59,7 @@ export async function register(data: RegisterData): Promise<User> {
     if (data.turnstile_token) {
         body.turnstile_token = data.turnstile_token;
     }
-    return apiRequest<User>('/auth/register', { method: 'POST', body: JSON.stringify(body) });
+    return apiRequest<RegisterResponse>('/auth/register', { method: 'POST', body: JSON.stringify(body) });
 }
 
 export async function linkAnonymousSession(anonymousSessionId: string): Promise<{ credits_used: number; credits_remaining: number }> {

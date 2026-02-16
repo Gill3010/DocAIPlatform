@@ -22,6 +22,7 @@ from app.services.conversion_service import (
     check_user_can_convert,
     increment_user_conversion_count,
     credits_remaining_for_user,
+    check_premium_format_access,
 )
 
 router = APIRouter()
@@ -99,6 +100,9 @@ async def upload_and_convert(
     await file.seek(0)
 
     db_user = await check_user_can_convert(db, current_user.id)
+    
+    # Check premium format access
+    check_premium_format_access(db_user, target_format)
 
     # Extract file format
     original_filename = file.filename or "unnamed"
@@ -250,6 +254,9 @@ async def upload_and_convert_anonymous(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="anonymous_limit_reached"
         )
+    
+    # Check premium format access
+    check_premium_format_access(anon_session, target_format)
 
     # Validate file size
     content = await file.read()
@@ -410,9 +417,23 @@ async def get_conversion_history(
     """
     Get user's conversion history
     """
+    from datetime import datetime, timedelta
+    
+    query = select(Conversion).where(Conversion.user_id == current_user.id)
+    
+    # Aplicar filtros de fecha según el plan
+    if not getattr(current_user, "is_superuser", False):
+        # Por defecto 30 días para Gratuito y Básico
+        days = 30
+        if current_user.is_premium and current_user.premium_plan_id in ['Pro', 'Empresa']:
+            # 1 año para Pro y Empresa
+            days = 365
+            
+        since_date = datetime.now() - timedelta(days=days)
+        query = query.where(Conversion.created_at >= since_date)
+
     result = await db.execute(
-        select(Conversion)
-        .where(Conversion.user_id == current_user.id)
+        query
         .order_by(Conversion.created_at.desc())
         .limit(limit)
     )

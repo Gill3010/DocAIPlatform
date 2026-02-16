@@ -238,11 +238,24 @@ async def get_user_stats(
     if total_conversions > 0:
         success_rate = round((completed_conversions / total_conversions) * 100, 1)
     
-    # Credits remaining (límite: 5 total; si usó 3 anónimas, tiene 2 más)
-    # Fuente de verdad: max(contador almacenado, conversiones completadas del usuario)
-    credits_used = max(current_user.free_conversion_count, int(completed_conversions))
-    free_tier_limit = settings.FREE_TIER_CONVERSIONS_LIMIT
-    credits_remaining = max(0, min(free_tier_limit, free_tier_limit - credits_used))
+    # Credits remaining
+    is_premium = getattr(current_user, "is_premium", False) or getattr(current_user, "is_superuser", False)
+    plan_id = getattr(current_user, "premium_plan_id", None)
+
+    if is_premium:
+        if plan_id == 'Básico':
+            free_tier_limit = 50
+            credits_used = getattr(current_user, "monthly_conversion_count", 0)
+            credits_remaining = max(0, 50 - credits_used)
+        else:
+            # Pro, Empresa, Superuser
+            credits_remaining = 999999
+            free_tier_limit = 999999
+            credits_used = getattr(current_user, "monthly_conversion_count", 0) or int(completed_conversions)
+    else:
+        free_tier_limit = settings.FREE_TIER_CONVERSIONS_LIMIT
+        credits_used = max(current_user.free_conversion_count, int(completed_conversions))
+        credits_remaining = max(0, free_tier_limit - credits_used)
     
     # Average processing time (mock for now, would need to add processing_time column)
     avg_processing_time = "2.4s"
@@ -268,6 +281,8 @@ async def get_user_stats(
             "name": current_user.full_name or "User",
             "email": current_user.email,
             "avatar_url": getattr(current_user, "avatar_url", None),
+            "is_premium": is_premium,
+            "premium_plan_id": getattr(current_user, "premium_plan_id", None)
         },
         "conversions": {
             "total": total_conversions,
@@ -278,7 +293,8 @@ async def get_user_stats(
         "credits": {
             "used": credits_used,
             "remaining": credits_remaining,
-            "limit": free_tier_limit
+            "limit": free_tier_limit,
+            "is_premium": is_premium
         },
         "success_rate": success_rate,
         "avg_processing_time": avg_processing_time,

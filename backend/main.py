@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.core.exceptions import AppException
 from app.core.logging_config import setup_logging, get_logger
-from app.routers import auth, convert, pdf_tools, users, ai, admin, documents
+from app.routers import auth, convert, pdf_tools, users, ai, admin, documents, payments, manuscript
 
 logger = get_logger(__name__)
 
@@ -173,6 +173,8 @@ app.include_router(users.router, prefix=f"{settings.API_V1_STR}/users", tags=["u
 app.include_router(ai.router, prefix=f"{settings.API_V1_STR}/ai", tags=["ai"])
 app.include_router(admin.router, prefix=f"{settings.API_V1_STR}/admin", tags=["admin"])
 app.include_router(documents.router, prefix=f"{settings.API_V1_STR}/documents", tags=["documents"])
+app.include_router(payments.router, prefix=f"{settings.API_V1_STR}/payments", tags=["payments"])
+app.include_router(manuscript.router, prefix=f"{settings.API_V1_STR}/manuscript", tags=["manuscript"])
 
 # Root static files location
 static_root = Path(__file__).resolve().parent / "static"

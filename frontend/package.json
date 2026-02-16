@@ -12,6 +12,7 @@
     "test:run": "vitest run"
   },
   "dependencies": {
+    "@paypal/react-paypal-js": "^8.9.2",
     "@tiptap/extension-collaboration": "^3.19.0",
     "@tiptap/extension-collaboration-cursor": "^2.26.2",
     "@tiptap/extension-placeholder": "^3.19.0",

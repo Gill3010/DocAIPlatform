@@ -30,6 +30,7 @@ export async function getAdminUsers(params: {
         is_active: boolean;
         is_superuser: boolean;
         can_access_admin_panel: boolean;
+        can_view_payments: boolean;
         auth_provider: string | null;
         created_at: string | null;
     }>;
@@ -53,7 +54,7 @@ export async function getAdminUser(userId: number): Promise<any> {
 
 export async function patchAdminUser(
     userId: number,
-    body: { is_active?: boolean; can_access_admin_panel?: boolean }
+    body: { is_active?: boolean; can_access_admin_panel?: boolean; can_view_payments?: boolean }
 ): Promise<any> {
     return apiRequest(`/admin/users/${userId}`, { method: 'PATCH', body: JSON.stringify(body) });
 }
@@ -119,4 +120,32 @@ export async function getAdminActivity(params: {
     if (params.action) sp.set('action', params.action);
     const q = sp.toString();
     return apiRequest(`/admin/activity${q ? `?${q}` : ''}`);
+}
+
+export async function getAdminPayments(params: {
+    page?: number;
+    size?: number;
+}): Promise<{
+    items: Array<{
+        id: number;
+        user_id: number;
+        user_email: string | null;
+        provider: string;
+        transaction_id: string | null;
+        amount: number;
+        currency: string;
+        status: string;
+        plan_id: string | null;
+        created_at: string | null;
+    }>;
+    total: number;
+    page: number;
+    size: number;
+    pages: number;
+}> {
+    const sp = new URLSearchParams();
+    if (params.page != null) sp.set('page', String(params.page));
+    if (params.size != null) sp.set('size', String(params.size));
+    const q = sp.toString();
+    return apiRequest(`/admin/payments${q ? `?${q}` : ''}`);
 }

@@ -1,6 +1,9 @@
-import { useEffect, useRef } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { Tag } from 'lucide-react';
+import { PaymentModal } from '../../components/Payment/PaymentModal';
+import { useAppStore } from '../../stores/appStore';
+import { apiService } from '../../services/api';
 import './Pricing.css';
 
 const PLANS = [
@@ -16,7 +19,7 @@ const PLANS = [
     {
         id: 'Básico',
         name: 'Básico',
-        price: 9,
+        price: 4.90,
         period: 'mes',
         description: 'Para uso personal y proyectos pequeños',
         features: ['50 conversiones/mes', 'Todos los formatos', 'Historial 30 días', 'Soporte por email'],
@@ -25,7 +28,7 @@ const PLANS = [
     {
         id: 'Pro',
         name: 'Pro',
-        price: 24,
+        price: 9.90,
         period: 'mes',
         description: 'Para equipos y uso profesional',
         features: ['Conversiones ilimitadas', 'Formatear manuscritos', 'Asistente IA', 'Historial 1 año', 'Soporte prioritario'],
@@ -34,7 +37,7 @@ const PLANS = [
     {
         id: 'Empresa',
         name: 'Empresa',
-        price: 79,
+        price: 29.90,
         period: 'mes',
         description: 'Soluciones a medida para organizaciones',
         features: ['Todo en Pro', 'API dedicada', 'Gestión de usuarios', 'SLA garantizado', 'Soporte 24/7'],
@@ -44,9 +47,12 @@ const PLANS = [
 
 export const Pricing = () => {
     const location = useLocation();
+    const navigate = useNavigate();
     const highlightPlanId = (location.state as { highlightPlan?: string } | null)?.highlightPlan;
     const fromModal = (location.state as { fromModal?: boolean } | null)?.fromModal;
     const recommendedCardRef = useRef<HTMLElement>(null);
+
+    const [selectedPlan, setSelectedPlan] = useState<{ id: string; name: string; price: number; currency?: string } | null>(null);
 
     // Al llegar desde el modal de upgrade: scroll al plan recomendado y foco visual
     useEffect(() => {
@@ -58,6 +64,15 @@ export const Pricing = () => {
             return () => clearTimeout(t);
         }
     }, [fromModal, highlightPlanId]);
+
+    const handleSelectPlan = (plan: typeof PLANS[0]) => {
+        if (plan.price > 0) {
+            setSelectedPlan(plan);
+        } else {
+            // Already handled by existing logic or just redirect to dashboard
+            // But here we focus on paid plans
+        }
+    };
 
     return (
         <div className="pricing-page">
@@ -99,9 +114,10 @@ export const Pricing = () => {
                             <button
                                 type="button"
                                 className={`pricing-card__cta ${isRecommended ? 'pricing-card__cta--primary' : ''}`}
-                                disabled
+                                disabled={false} // Enable button
+                                onClick={() => handleSelectPlan(plan)}
                             >
-                                {isRecommended ? 'Elegir Pro' : 'Próximamente'}
+                                {plan.price === 0 ? 'Plan Actual' : (isRecommended ? 'Elegir Pro' : 'Elegir ' + plan.name)}
                             </button>
                         </article>
                     );
@@ -111,6 +127,31 @@ export const Pricing = () => {
             <p className="pricing-disclaimer">
                 Los precios y condiciones están sujetos a cambios. Contáctanos para ofertas personalizadas.
             </p>
+
+            {selectedPlan && (
+                <div style={{ position: 'fixed', zIndex: 1000 }}>
+                    {/* Lazy load or direct import PaymentModal */}
+                    {/* Assuming PaymentModal is imported at top */}
+                    <PaymentModal
+                        plan={selectedPlan}
+                        onClose={() => setSelectedPlan(null)}
+                        onSuccess={async () => {
+                            try {
+                                // Refresh user profile in global store
+                                const updatedUser = await apiService.getCurrentUser();
+                                useAppStore.getState().setUser(updatedUser);
+
+                                setSelectedPlan(null);
+                                // Forzar navegación al dashboard para ver los cambios
+                                navigate('/dashboard');
+                            } catch (e) {
+                                console.error("Error refreshing user state", e);
+                                setSelectedPlan(null);
+                            }
+                        }}
+                    />
+                </div>
+            )}
         </div>
     );
 };

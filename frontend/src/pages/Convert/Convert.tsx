@@ -24,6 +24,7 @@ export const Convert = () => {
 
     const [showLimitModal, setShowLimitModal] = useState(false);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+    const [upgradeModalContent, setUpgradeModalContent] = useState<{ title: string; description: string } | null>(null);
 
     const {
         selectedFile,
@@ -39,10 +40,11 @@ export const Convert = () => {
         getAcceptForUrlFrom,
     } = useFileSelection(urlFrom, urlTo);
 
-    const { startConversion, isAdminUnlimited } = useConversion({
+    const { startConversion } = useConversion({
         setSelectedFile,
         setShowLimitModal,
         setShowUpgradeModal,
+        setUpgradeModalContent,
         isAnonymous,
         sessionId,
         syncFromCreditsRemaining,
@@ -195,14 +197,19 @@ export const Convert = () => {
                                                 </div>
                                                 {selectedFile.creditsRemaining !== undefined && (
                                                     <p className="credits-info">
-                                                        {(user?.is_superuser || user?.can_access_admin_panel)
-                                                            ? 'Conversiones ilimitadas (administrador)'
-                                                            : (() => {
-                                                                const remaining = selectedFile.creditsRemaining!;
-                                                                const limit = remaining > 3 ? 5 : (isAnonymous ? 3 : 5);
-                                                                return `${Math.min(remaining, limit)} de ${limit} conversiones gratuitas restantes`;
-                                                            })()}
-                                                        {!user?.is_superuser && !user?.can_access_admin_panel && isAnonymous && selectedFile.creditsRemaining! < 3 && (
+                                                        {(() => {
+                                                            const isUnlimited = user?.is_superuser || user?.can_access_admin_panel || (user?.is_premium && user?.premium_plan_id !== 'Básico');
+                                                            if (isUnlimited) return 'Conversiones ilimitadas';
+
+                                                            const remaining = selectedFile.creditsRemaining!;
+                                                            if (user?.premium_plan_id === 'Básico') {
+                                                                return `${remaining} de 50 conversiones mensuales restantes`;
+                                                            }
+
+                                                            const limit = isAnonymous ? 3 : 5;
+                                                            return `${Math.min(remaining, limit)} de ${limit} conversiones gratuitas restantes`;
+                                                        })()}
+                                                        {!user?.is_premium && !user?.is_superuser && !user?.can_access_admin_panel && isAnonymous && selectedFile.creditsRemaining! < 3 && (
                                                             ' — Regístrate para 2 más'
                                                         )}
                                                     </p>
@@ -307,6 +314,8 @@ export const Convert = () => {
             <UpgradeModal
                 isOpen={showUpgradeModal}
                 onClose={() => setShowUpgradeModal(false)}
+                title={upgradeModalContent?.title}
+                description={upgradeModalContent?.description}
             />
         </div>
     );

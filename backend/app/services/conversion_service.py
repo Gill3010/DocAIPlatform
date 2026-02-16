@@ -10,7 +10,14 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.core.exceptions import AuthLimitReached, AnonymousLimitReached, InvalidCredentials, InvalidInput, UserNotFound
+from app.core.exceptions import (
+    AuthLimitReached, 
+    AnonymousLimitReached, 
+    InvalidCredentials, 
+    InvalidInput, 
+    UserNotFound,
+    PremiumFormatRequired
+)
 from app.models.user import User
 from app.models.conversion import Conversion
 from app.models.anonymous_session import AnonymousSession
@@ -21,14 +28,56 @@ async def check_user_can_convert(
     user_id: int,
 ) -> User:
     """
-    Sync user credit count with completed conversions, then check limit.
-    Returns the loaded User. Raises ValueError with message if limit reached.
+    Sync user credit count, check for monthly reset, then check limit based on plan.
     """
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
     if not user:
         raise UserNotFound("User not found")
 
+    from datetime import datetime, timezone, timedelta
+    now = datetime.now(timezone.utc)
+
+    # 1. Handle Subscription Expiration
+    if user.is_premium and user.subscription_end_date:
+        # Ensure subscription_end_date is timezone-aware for comparison if it's not
+        end_date = user.subscription_end_date
+        if end_date.tzinfo is None:
+            end_date = end_date.replace(tzinfo=timezone.utc)
+            
+        if now > end_date:
+            user.is_premium = False
+            user.premium_plan_id = None
+            # We keep monthly_conversion_count for history, but user is now free tier
+            await db.commit()
+            await db.refresh(user)
+
+    # 2. Handle Monthly Reset for Premium Users
+    if user.is_premium and user.last_billing_reset:
+        # Check if 30 days have passed since last reset
+        reset_date = user.last_billing_reset
+        if reset_date.tzinfo is None:
+            reset_date = reset_date.replace(tzinfo=timezone.utc)
+
+        if now >= reset_date + timedelta(days=30):
+            user.monthly_conversion_count = 0
+            user.last_billing_reset = now
+            await db.commit()
+            await db.refresh(user)
+
+    # 2. Check Limits
+    if getattr(user, "is_superuser", False):
+        return user
+
+    if user.is_premium:
+        # Basic Plan: 50 conversions/month
+        if user.premium_plan_id == 'Básico':
+            if (user.monthly_conversion_count or 0) >= 50:
+                raise AuthLimitReached() # Should probably be a more specific "MonthlyLimitReached" but this triggers the modal
+        # Pro/Empresa are unlimited
+        return user
+    
+    # Free Tier Logic
     completed_result = await db.execute(
         select(func.count(Conversion.id)).where(
             Conversion.user_id == user.id,
@@ -36,7 +85,7 @@ async def check_user_can_convert(
         )
     )
     completed_count = completed_result.scalar() or 0
-    if user.free_conversion_count < completed_count:
+    if (user.free_conversion_count or 0) < completed_count:
         user.free_conversion_count = min(
             settings.FREE_TIER_CONVERSIONS_LIMIT,
             int(completed_count),
@@ -44,8 +93,9 @@ async def check_user_can_convert(
         await db.commit()
         await db.refresh(user)
 
-    if not getattr(user, "is_superuser", False) and user.free_conversion_count >= settings.FREE_TIER_CONVERSIONS_LIMIT:
+    if (user.free_conversion_count or 0) >= settings.FREE_TIER_CONVERSIONS_LIMIT:
         raise AuthLimitReached()
+    
     return user
 
 
@@ -53,15 +103,24 @@ def increment_user_conversion_count(
     user: User,
     is_superuser: bool = False,
 ) -> None:
-    """Increment free_conversion_count on user (in-memory). Caller must commit."""
-    if not is_superuser:
+    """Increment conversion count on user (in-memory). Caller must commit."""
+    if is_superuser:
+        return
+
+    if getattr(user, "is_premium", False):
+        user.monthly_conversion_count = (user.monthly_conversion_count or 0) + 1
+    else:
         user.free_conversion_count = (user.free_conversion_count or 0) + 1
 
 
 def credits_remaining_for_user(user: User) -> int:
     """Return remaining credits for response."""
-    if getattr(user, "is_superuser", False):
+    if getattr(user, "is_superuser", False) or user.premium_plan_id in ['Pro', 'Empresa']:
         return 999999
+    
+    if user.premium_plan_id == 'Básico':
+        return max(0, 50 - (user.monthly_conversion_count or 0))
+        
     return max(0, settings.FREE_TIER_CONVERSIONS_LIMIT - (user.free_conversion_count or 0))
 
 
@@ -109,3 +168,17 @@ async def consume_credit_for_operation(
         increment_user_conversion_count(entity, is_superuser=getattr(entity, "is_superuser", False))
     await db.commit()
     await db.refresh(entity)
+
+
+def check_premium_format_access(
+    entity: User | AnonymousSession,
+    target_format: str,
+) -> None:
+    """
+    Check if the user/entity can access the requested target format.
+    Premium formats are restricted to premium users.
+    """
+    if target_format.lower() in settings.PREMIUM_FORMATS:
+        is_premium = getattr(entity, "is_premium", False) or getattr(entity, "is_superuser", False)
+        if not is_premium:
+            raise PremiumFormatRequired()
