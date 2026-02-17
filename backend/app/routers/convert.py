@@ -10,6 +10,7 @@ import zipfile
 import io
 from datetime import datetime
 from pathlib import Path
+import unicodedata
 
 from app.core.database import get_db, AsyncSessionLocal
 from app.core.security import get_current_user
@@ -18,8 +19,8 @@ from app.models.user import User
 from app.models.conversion import Conversion
 from app.models.anonymous_session import AnonymousSession
 from app.schemas.conversion import ConversionResponse, ConversionUploadResponse
-from app.utils.converter import convert_file, ConversionError, get_supported_conversions
-from app.services.ecs_converter_service import convert_via_ecs
+from app.utils.converter import ConversionError, get_supported_conversions
+from app.services.conversion_orchestrator import execute_conversion
 from app.core.logging_config import get_logger
 
 _logger = get_logger(__name__)
@@ -32,72 +33,22 @@ from app.services.conversion_service import (
 
 router = APIRouter()
 
-# Storage configuration
-UPLOAD_DIR = Path("backend/storage/uploads")
-CONVERTED_DIR = Path("backend/storage/converted")
+# Storage configuration: rutas absolutas para evitar fallos con cwd (PM2 usa cwd=backend)
+_BASE_DIR = Path(__file__).resolve().parent.parent.parent  # backend/
+UPLOAD_DIR = _BASE_DIR / "storage" / "uploads"
+CONVERTED_DIR = _BASE_DIR / "storage" / "converted"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 CONVERTED_DIR.mkdir(parents=True, exist_ok=True)
 
 
-def _should_use_ecs(file_extension: str, target_format: str, use_ecs_setting: bool) -> bool:
-    """
-    Determina si una conversión debe usar ECS o conversión local.
-    
-    Reglas:
-    - Conversiones rápidas (PDF→DOCX, PDF→Excel, PDF→PPTX, Excel→PDF, PPTX→PDF, imágenes, texto) → SIEMPRE locales
-    - DOCX→PDF → ECS solo si use_ecs_setting=True (para mejor calidad de tablas/imágenes)
-    - Otras conversiones → ECS solo si use_ecs_setting=True y tienen convertidor local como fallback
-    """
-    source = file_extension.lower()
-    target = target_format.lower()
-    
-    # Conversiones que SIEMPRE deben ser locales (rápidas, evitan timeout)
-    always_local = [
-        ('pdf', 'docx'),      # PDF→DOCX: pdf2docx
-        ('pdf', 'xlsx'),      # PDF→Excel: pdfplumber
-        ('pdf', 'xls'),       # PDF→Excel: pdfplumber
-        ('pdf', 'pptx'),      # PDF→PPTX: PyMuPDF + python-pptx
-        ('pdf', 'ppt'),       # PDF→PPTX: PyMuPDF + python-pptx
-        ('xlsx', 'pdf'),      # Excel→PDF: openpyxl + reportlab
-        ('xls', 'pdf'),       # Excel→PDF: openpyxl + reportlab
-        ('pptx', 'pdf'),      # PPTX→PDF: LibreOffice local o Docker
-        ('ppt', 'pdf'),       # PPTX→PDF: LibreOffice local o Docker
-        ('png', 'pdf'),       # Imagen→PDF: PIL
-        ('jpg', 'pdf'),       # Imagen→PDF: PIL
-        ('jpeg', 'pdf'),      # Imagen→PDF: PIL
-        ('pdf', 'png'),       # PDF→Imagen: PyMuPDF
-        ('pdf', 'jpg'),       # PDF→JPG: PyMuPDF
-        ('pdf', 'jpeg'),      # PDF→JPEG: PyMuPDF
-        ('pdf', 'txt'),       # PDF→Texto: pypdf
-        ('txt', 'docx'),      # Texto→DOCX: python-docx
-        ('docx', 'txt'),      # DOCX→Texto: python-docx
-        ('xml', 'html'),      # XML→HTML: lxml
-        ('html', 'xml'),      # HTML→XML: lxml
-        ('htm', 'xml'),       # HTML→XML: lxml
-        ('dxf', 'png'),       # DXF→PNG: ezdxf
-        ('dxf', 'jpg'),       # DXF→JPG: ezdxf
-        ('dxf', 'jpeg'),      # DXF→JPEG: ezdxf
-        ('png', 'dxf'),       # PNG→DXF: ezdxf
-        ('jpg', 'dxf'),       # JPG→DXF: ezdxf
-        ('jpeg', 'dxf'),      # JPEG→DXF: ezdxf
-        ('dwg', 'png'),       # DWG→PNG: ezdxf odafc
-        ('dwg', 'jpg'),       # DWG→JPG: ezdxf odafc
-        ('dwg', 'jpeg'),      # DWG→JPEG: ezdxf odafc
-        ('png', 'dwg'),       # PNG→DWG: ezdxf odafc
-        ('jpg', 'dwg'),       # JPG→DWG: ezdxf odafc
-        ('jpeg', 'dwg'),      # JPEG→DWG: ezdxf odafc
-    ]
-    
-    if (source, target) in always_local:
-        return False  # Usar conversión local
-    
-    # DOCX→PDF: usar ECS solo si está habilitado (mejor calidad)
-    if source == 'docx' and target == 'pdf':
-        return use_ecs_setting
-    
-    # Para otras conversiones, usar ECS solo si está habilitado
-    # (tendrán fallback a local si falla)
-    return use_ecs_setting
+def _safe_download_filename(name: str) -> str:
+    """Nombre seguro para Content-Disposition (HTTP exige latin-1). Normaliza NFC y evita caracteres no codificables."""
+    n = unicodedata.normalize("NFC", name)
+    try:
+        n.encode("latin-1")
+        return n
+    except UnicodeEncodeError:
+        return n.encode("ascii", "replace").decode("ascii").replace("?", "_")
 
 
 async def _run_conversion_background_anon(
@@ -113,31 +64,13 @@ async def _run_conversion_background_anon(
 
     _logger.info(f"Background task started for conversion {conversion_id}: {file_extension}->{target_format}")
     try:
-        use_ecs_setting = getattr(settings, "USE_ECS_CONVERTER", False)
-        should_use_ecs = _should_use_ecs(file_extension, target_format, use_ecs_setting)
-        
-        if should_use_ecs:
-            _logger.info(f"Background: ECS (anon) %s->%s", file_extension, target_format)
-            try:
-                _logger.info(f"Background: Starting ECS conversion for {conversion_id}")
-                await asyncio.to_thread(
-                    convert_via_ecs,
-                    input_path,
-                    output_path,
-                    file_extension,
-                    target_format,
-                )
-                _logger.info(f"Background: ECS conversion completed successfully for {conversion_id}")
-            except ConversionError as e:
-                _logger.warning(f"Background ECS (anon) failed for {conversion_id}, fallback: %s", e)
-                convert_file(input_path, output_path, file_extension, target_format)
-            except Exception as e:
-                _logger.exception(f"Background ECS (anon) exception for {conversion_id}: {e}")
-                raise
-        else:
-            # Conversión local (rápida, evita timeout 504)
-            _logger.info(f"Background: local (anon) %s->%s", file_extension, target_format)
-            convert_file(input_path, output_path, file_extension, target_format)
+        await asyncio.to_thread(
+            execute_conversion,
+            input_path,
+            output_path,
+            file_extension,
+            target_format,
+        )
 
         status_update = "completed"
         error_msg = None
@@ -311,40 +244,16 @@ async def upload_and_convert(
         await db.commit()
         await db.refresh(conversion)
         
-        # Perform conversion - usa función helper para determinar ECS vs local
+        # Perform conversion (estrategia resuelta por conversion_strategy)
         try:
-            use_ecs_setting = getattr(settings, "USE_ECS_CONVERTER", False)
-            should_use_ecs = _should_use_ecs(file_extension, target_format, use_ecs_setting)
-            
-            if should_use_ecs:
-                _logger.info("Using ECS converter for %s->%s", file_extension, target_format)
-                try:
-                    await asyncio.to_thread(
-                        convert_via_ecs,
-                        str(input_file_path),
-                        str(output_file_path),
-                        file_extension,
-                        target_format,
-                    )
-                    _logger.info("ECS conversion completed successfully")
-                except ConversionError as e:
-                    _logger.warning("ECS conversion failed, falling back to local: %s", e)
-                    convert_file(
-                        str(input_file_path),
-                        str(output_file_path),
-                        file_extension,
-                        target_format
-                    )
-            else:
-                # Conversión local (rápida, evita timeout 504)
-                _logger.info("Using local converter for %s->%s (faster, avoids timeout)", file_extension, target_format)
-                convert_file(
-                    str(input_file_path),
-                    str(output_file_path),
-                    file_extension,
-                    target_format
-                )
-            
+            await asyncio.to_thread(
+                execute_conversion,
+                str(input_file_path),
+                str(output_file_path),
+                file_extension,
+                target_format,
+            )
+
             # Update conversion status
             conversion.status = "completed"
             conversion.completed_at = datetime.now()
@@ -493,40 +402,16 @@ async def upload_and_convert_anonymous(
         await db.commit()
         await db.refresh(conversion)
 
-        # Conversión síncrona (como antes) - espera a que termine antes de responder
+        # Conversión (estrategia resuelta por conversion_strategy)
         try:
-            use_ecs_setting = getattr(settings, "USE_ECS_CONVERTER", False)
-            should_use_ecs = _should_use_ecs(file_extension, target_format, use_ecs_setting)
-            
-            if should_use_ecs:
-                _logger.info("Using ECS converter (anon) for %s->%s", file_extension, target_format)
-                try:
-                    await asyncio.to_thread(
-                        convert_via_ecs,
-                        str(input_file_path),
-                        str(output_file_path),
-                        file_extension,
-                        target_format,
-                    )
-                    _logger.info("ECS conversion (anon) completed successfully")
-                except ConversionError as e:
-                    _logger.warning("ECS conversion (anon) failed, falling back to local: %s", e)
-                    convert_file(
-                        str(input_file_path),
-                        str(output_file_path),
-                        file_extension,
-                        target_format
-                    )
-            else:
-                # Conversión local (rápida, evita timeout 504)
-                _logger.info("Using local converter (anon) for %s->%s (faster, avoids timeout)", file_extension, target_format)
-                convert_file(
-                    str(input_file_path),
-                    str(output_file_path),
-                    file_extension,
-                    target_format
-                )
-            
+            await asyncio.to_thread(
+                execute_conversion,
+                str(input_file_path),
+                str(output_file_path),
+                file_extension,
+                target_format,
+            )
+
             conversion.status = "completed"
             conversion.completed_at = datetime.now()
             anon_session.conversions_count += 1
@@ -594,16 +479,20 @@ async def download_converted_file_anonymous(
         )
     output_path = Path(conversion.output_file_path)
     if not output_path.exists():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Converted file not found")
+        fallback = _BASE_DIR.parent / conversion.output_file_path
+        if fallback.exists():
+            output_path = fallback
+        else:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Converted file not found")
     zip_bytes = _zip_xml_and_images(output_path)
     if zip_bytes is not None:
-        download_name = f"{Path(conversion.original_filename).stem}_converted.zip"
+        download_name = _safe_download_filename(f"{Path(conversion.original_filename).stem}_converted.zip")
         return Response(
             content=zip_bytes,
             media_type="application/zip",
             headers={"Content-Disposition": f'attachment; filename="{download_name}"'},
         )
-    download_name = f"{Path(conversion.original_filename).stem}_converted.{conversion.target_format}"
+    download_name = _safe_download_filename(f"{Path(conversion.original_filename).stem}_converted.{conversion.target_format}")
     return FileResponse(path=str(output_path), filename=download_name, media_type='application/octet-stream')
 
 
@@ -691,24 +580,28 @@ async def download_converted_file(
         )
     
     output_path = Path(conversion.output_file_path)
-
     if not output_path.exists():
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Converted file not found on server"
-        )
+        # Rutas antiguas en DB pueden ser relativas a project root (backend/storage/...)
+        fallback = _BASE_DIR.parent / conversion.output_file_path
+        if fallback.exists():
+            output_path = fallback
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Converted file not found on server"
+            )
 
     # XML + images: return ZIP for OJS (upload XML + dependent image files)
     zip_bytes = _zip_xml_and_images(output_path)
     if zip_bytes is not None:
-        download_name = f"{Path(conversion.original_filename).stem}_converted.zip"
+        download_name = _safe_download_filename(f"{Path(conversion.original_filename).stem}_converted.zip")
         return Response(
             content=zip_bytes,
             media_type="application/zip",
             headers={"Content-Disposition": f'attachment; filename="{download_name}"'},
         )
 
-    download_name = f"{Path(conversion.original_filename).stem}_converted.{conversion.target_format}"
+    download_name = _safe_download_filename(f"{Path(conversion.original_filename).stem}_converted.{conversion.target_format}")
     return FileResponse(
         path=str(output_path),
         filename=download_name,

@@ -33,7 +33,16 @@ class BaseConverter(ABC):
     def target_formats(self) -> List[str]:
         """Return list of supported target formats (e.g., ['png', 'txt'])"""
         pass
-    
+
+    @property
+    def prefers_local(self) -> bool:
+        """
+        True si esta conversión debe ejecutarse siempre en local (no usar ECS).
+        Default True para conversiones rápidas. DocxToPDF puede devolver False
+        para permitir ECS cuando se busca mejor calidad.
+        """
+        return True
+
     @abstractmethod
     def convert(self, input_path: str, output_path: str) -> bool:
         """

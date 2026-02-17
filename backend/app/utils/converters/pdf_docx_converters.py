@@ -119,15 +119,20 @@ def _iter_block_items(parent) -> Iterator:
 
 class DocxToPDFConverter(BaseConverter):
     """Convert DOCX to PDF - LibreOffice when available, else ReportLab with tables."""
-    
+
+    @property
+    def prefers_local(self) -> bool:
+        """Permite ECS cuando USE_ECS_CONVERTER=true (mejor calidad tablas/imágenes)."""
+        return False
+
     @property
     def source_formats(self) -> List[str]:
         return ['docx']
-    
+
     @property
     def target_formats(self) -> List[str]:
         return ['pdf']
-    
+
     def convert(self, input_path: str, output_path: str) -> bool:
         self.ensure_directory(output_path)
         if _docx_to_pdf_libreoffice(input_path, output_path):
