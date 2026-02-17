@@ -42,6 +42,17 @@
 - `USE_CAMELOT_FALLBACK=true` en config
 - camelot-py para tablas complejas
 
+### 2.6 Word-to-JATS Ensemble (nuevo)
+- Plataforma de conversión docx→xml de alta precisión para OJS
+- Módulo en `word-to-jats/` con JatsMerger, adaptadores GROBID/Pandoc/Bedrock
+- Integración en backend: `USE_JATS_ENSEMBLE=true` y `GROBID_URL` (opcional)
+- Ver `docs/INTEGRACION-WORD-TO-JATS.md`
+
+### 2.7 Arquitectura modular de conversiones
+- `conversion_strategy.py`: decide local / ECS / JATS según `prefers_local` del conversor y config
+- `conversion_orchestrator.py`: ejecuta la conversión (router solo delega)
+- `BaseConverter.prefers_local`: los conversores declaran si prefieren ejecución local (default True)
+
 ---
 
 ## 3. Archivos modificados (referencia)
@@ -55,7 +66,9 @@
 | `backend/app/utils/converter.py` | Preprocesado OCR para PDF |
 | `backend/app/utils/pdf_ocr.py` | Nuevo: detección y OCR de PDF escaneados |
 | `backend/app/core/config.py` | USE_OCR_FOR_SCANNED_PDF, USE_CAMELOT_FALLBACK |
-| `backend/app/routers/convert.py` | always_local: pdf→jpg/jpeg, dwg↔png/jpg/jpeg |
+| `backend/app/routers/convert.py` | Delega a conversion_orchestrator (arquitectura modular) |
+| `backend/app/services/conversion_strategy.py` | Resuelve motor: local, ECS o JATS según prefers_local y config |
+| `backend/app/services/conversion_orchestrator.py` | Ejecuta conversión según estrategia resuelta |
 | `frontend/src/constants/conversions.ts` | 18 cards específicas Imágenes y CAD, etiquetas PNG/JPG/JPEG/DXF/DWG |
 | `frontend/src/hooks/useFileSelection.ts` | Formatos válidos incluyen DWG |
 | `frontend/src/components/FileDropZone/FileDropZone.tsx` | DWG en lista de formatos |
