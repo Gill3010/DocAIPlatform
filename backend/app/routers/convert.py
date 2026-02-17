@@ -1,10 +1,9 @@
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, status, Header, BackgroundTasks
 from fastapi.responses import FileResponse, Response
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from sqlalchemy import select
 from typing import List, Optional
 import asyncio
-import aiofiles
 import uuid
 import zipfile
 import io
@@ -21,13 +20,15 @@ from app.models.anonymous_session import AnonymousSession
 from app.schemas.conversion import ConversionResponse, ConversionUploadResponse
 from app.utils.converter import ConversionError, get_supported_conversions
 from app.services.conversion_orchestrator import execute_conversion
+from app.services.conversion_request_service import (
+    process_upload_and_convert_authenticated,
+    process_upload_and_convert_anonymous,
+)
 from app.core.logging_config import get_logger
 
 _logger = get_logger(__name__)
 from app.services.conversion_service import (
     check_user_can_convert,
-    increment_user_conversion_count,
-    credits_remaining_for_user,
     check_premium_format_access,
 )
 
@@ -190,103 +191,37 @@ async def upload_and_convert(
     # Check premium format access
     check_premium_format_access(db_user, target_format)
 
-    # Extract file format
     original_filename = file.filename or "unnamed"
-    file_extension = Path(original_filename).suffix.lower().replace('.', '')
-    
-    if not file_extension:
+    if not Path(original_filename).suffix:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="File must have a valid extension"
         )
-    
-    # Validate conversion is supported
-    supported = get_supported_conversions()
-    if file_extension not in supported:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Source format '{file_extension}' is not supported. Supported: {list(supported.keys())}"
-        )
-    
-    if target_format not in supported.get(file_extension, []):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Cannot convert from '{file_extension}' to '{target_format}'. "
-                   f"Available targets: {supported.get(file_extension, [])}"
-        )
-    
-    # Generate unique filenames
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    safe_filename = f"user_{db_user.id}_{timestamp}_{original_filename}"
-    input_file_path = UPLOAD_DIR / safe_filename
-    
-    output_filename = f"{Path(safe_filename).stem}_converted.{target_format}"
-    output_file_path = CONVERTED_DIR / output_filename
-    
-    try:
-        # Save uploaded file
-        async with aiofiles.open(input_file_path, 'wb') as f:
-            await f.write(content)
-        
-        # Create conversion record
-        conversion = Conversion(
-            user_id=current_user.id,
-            original_filename=original_filename,
-            original_format=file_extension,
-            target_format=target_format,
-            file_size=file_size_mb,
-            input_file_path=str(input_file_path),
-            output_file_path=str(output_file_path),
-            status="processing"
-        )
-        
-        db.add(conversion)
-        await db.commit()
-        await db.refresh(conversion)
-        
-        # Perform conversion (estrategia resuelta por conversion_strategy)
-        try:
-            await asyncio.to_thread(
-                execute_conversion,
-                str(input_file_path),
-                str(output_file_path),
-                file_extension,
-                target_format,
-            )
 
-            # Update conversion status
-            conversion.status = "completed"
-            conversion.completed_at = datetime.now()
-            
-            exempt = getattr(db_user, "is_superuser", False) or getattr(db_user, "can_access_admin_panel", False)
-            increment_user_conversion_count(db_user, is_superuser=exempt)
-            await db.commit()
-            
-        except ConversionError as e:
-            # Mark conversion as failed
-            conversion.status = "failed"
-            conversion.error_message = str(e)
-            await db.commit()
-            
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Conversion failed: {str(e)}"
-            )
-        
-        credits_remaining = credits_remaining_for_user(db_user)
-        return ConversionUploadResponse(
-            message="File converted successfully",
-            conversion_id=int(conversion.id),
-            status="completed",
-            credits_remaining=int(credits_remaining),
+    try:
+        return await process_upload_and_convert_authenticated(
+            content=content,
+            original_filename=original_filename,
+            target_format=target_format,
+            user_id=current_user.id,
+            db_user=db_user,
+            upload_dir=UPLOAD_DIR,
+            converted_dir=CONVERTED_DIR,
+            db=db,
         )
-        
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except ConversionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Conversion failed: {str(e)}"
+        )
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Upload failed: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Upload failed: {str(e)}"
         )
 
 
@@ -346,7 +281,6 @@ async def upload_and_convert_anonymous(
     # Check premium format access
     check_premium_format_access(anon_session, target_format)
 
-    # Validate file size
     content = await file.read()
     file_size_mb = len(content) / (1024 * 1024)
     if file_size_mb > settings.MAX_FILE_SIZE_MB:
@@ -354,93 +288,38 @@ async def upload_and_convert_anonymous(
             status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
             detail=f"File size exceeds {settings.MAX_FILE_SIZE_MB}MB limit"
         )
-    await file.seek(0)
 
-    # Extract file format
     original_filename = file.filename or "unnamed"
-    file_extension = Path(original_filename).suffix.lower().replace('.', '')
-    if not file_extension:
+    if not Path(original_filename).suffix:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="File must have a valid extension"
         )
 
-    supported = get_supported_conversions()
-    if file_extension not in supported:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Source format '{file_extension}' is not supported."
-        )
-    if target_format not in supported.get(file_extension, []):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Cannot convert from '{file_extension}' to '{target_format}'."
-        )
-
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    safe_filename = f"anon_{x_anonymous_session_id[:8]}_{timestamp}_{original_filename}"
-    input_file_path = UPLOAD_DIR / safe_filename
-    output_filename = f"{Path(safe_filename).stem}_converted.{target_format}"
-    output_file_path = CONVERTED_DIR / output_filename
-
     try:
-        async with aiofiles.open(input_file_path, 'wb') as f:
-            await f.write(content)
-
-        conversion = Conversion(
-            user_id=None,
-            anonymous_session_id=x_anonymous_session_id,
+        return await process_upload_and_convert_anonymous(
+            content=content,
             original_filename=original_filename,
-            original_format=file_extension,
             target_format=target_format,
-            file_size=file_size_mb,
-            input_file_path=str(input_file_path),
-            output_file_path=str(output_file_path),
-            status="processing"
+            anonymous_session_id=x_anonymous_session_id,
+            anon_session=anon_session,
+            upload_dir=UPLOAD_DIR,
+            converted_dir=CONVERTED_DIR,
+            db=db,
         )
-        db.add(conversion)
-        await db.commit()
-        await db.refresh(conversion)
-
-        # Conversión (estrategia resuelta por conversion_strategy)
-        try:
-            await asyncio.to_thread(
-                execute_conversion,
-                str(input_file_path),
-                str(output_file_path),
-                file_extension,
-                target_format,
-            )
-
-            conversion.status = "completed"
-            conversion.completed_at = datetime.now()
-            anon_session.conversions_count += 1
-            anon_session.last_used_at = datetime.now()
-            await db.commit()
-
-        except ConversionError as e:
-            conversion.status = "failed"
-            conversion.error_message = str(e)
-            await db.commit()
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Conversion failed: {str(e)}"
-            )
-
-        credits_remaining = settings.ANONYMOUS_CONVERSIONS_LIMIT - anon_session.conversions_count
-        return ConversionUploadResponse(
-            message="File converted successfully",
-            conversion_id=conversion.id,
-            status="completed",
-            credits_remaining=credits_remaining
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except ConversionError as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Conversion failed: {str(e)}"
         )
-
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail=f"Upload failed: {str(e)}"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Upload failed: {str(e)}"
         )
 
 

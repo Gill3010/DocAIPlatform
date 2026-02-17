@@ -9,8 +9,8 @@ from app.utils.base_converter import BaseConverter, ConversionError
 
 
 class ImageToPDFConverter(BaseConverter):
-    """Convert images (PNG, JPG, JPEG) to PDF"""
-    
+    """Convert images (PNG, JPG, JPEG) to PDF. Siempre local (prefers_local=True)."""
+
     @property
     def source_formats(self) -> List[str]:
         return ['png', 'jpg', 'jpeg']

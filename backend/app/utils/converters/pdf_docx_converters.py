@@ -63,7 +63,7 @@ def _pdf_to_docx_fallback(input_path: str, output_path: str) -> bool:
 
 
 class PDFToDocxConverter(BaseConverter):
-    """Convert PDF to DOCX - uses pdf2docx when available (preserves tables and images)."""
+    """PDF→DOCX via pdf2docx. Siempre local (prefers_local=True)."""
     
     @property
     def source_formats(self) -> List[str]:

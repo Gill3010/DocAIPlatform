@@ -51,6 +51,8 @@
 ### 2.7 Arquitectura modular de conversiones
 - `conversion_strategy.py`: decide local / ECS / JATS según `prefers_local` del conversor y config
 - `conversion_orchestrator.py`: ejecuta la conversión (router solo delega)
+- `conversion_request_service.py`: orquesta upload, conversión y actualización de BD
+- `converters/__init__.py`: discovery automático de conversores vía pkgutil (no imports manuales)
 - `BaseConverter.prefers_local`: los conversores declaran si prefieren ejecución local (default True)
 
 ---
@@ -69,6 +71,8 @@
 | `backend/app/routers/convert.py` | Delega a conversion_orchestrator (arquitectura modular) |
 | `backend/app/services/conversion_strategy.py` | Resuelve motor: local, ECS o JATS según prefers_local y config |
 | `backend/app/services/conversion_orchestrator.py` | Ejecuta conversión según estrategia resuelta |
+| `backend/app/services/conversion_request_service.py` | Orquesta upload + conversión + BD |
+| `backend/app/utils/converters/__init__.py` | Discovery automático de conversores (pkgutil) |
 | `frontend/src/constants/conversions.ts` | 18 cards específicas Imágenes y CAD, etiquetas PNG/JPG/JPEG/DXF/DWG |
 | `frontend/src/hooks/useFileSelection.ts` | Formatos válidos incluyen DWG |
 | `frontend/src/components/FileDropZone/FileDropZone.tsx` | DWG en lista de formatos |
