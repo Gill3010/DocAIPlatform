@@ -39,8 +39,13 @@ export interface AuthToken {
     token_type: string;
 }
 
-export interface RegisterResponse extends AuthToken {
-    user: User;
+export interface RegisterResponse {
+    message?: string;
+    email?: string;
+    verification_url?: string;  // Solo cuando SES no configurado (para pruebas)
+    user?: User;
+    access_token?: string;
+    token_type?: string;
 }
 
 export interface ConversionJob {

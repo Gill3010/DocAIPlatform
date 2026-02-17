@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from app.core.database import Base
 
+
 class User(Base):
     __tablename__ = "users"
     __table_args__ = {"extend_existing": True}
@@ -19,6 +20,9 @@ class User(Base):
     # Autenticación social
     auth_provider = Column(String, default="email")  # 'email' | 'google' | 'facebook'
     provider_user_id = Column(String, nullable=True, index=True)  # ID en el proveedor OAuth
+
+    # Verificación de email (NULL = no verificado; datetime = verificado)
+    email_verified_at = Column(DateTime(timezone=True), nullable=True)
 
     # Free tier usage tracking
     free_conversion_count = Column(Integer, default=0)

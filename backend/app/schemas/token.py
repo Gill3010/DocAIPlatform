@@ -46,6 +46,23 @@ from app.schemas.user import UserResponse
 
 
 class RegisterResponse(BaseModel):
+    """Cuando se requiere verificación: message y email. Sin token hasta verificar."""
+    message: Optional[str] = None
+    email: Optional[str] = None
+    verification_url: Optional[str] = None  # Solo cuando SES no configurado (para pruebas)
     user: Optional[UserResponse] = None
-    access_token: str
-    token_type: str
+    access_token: Optional[str] = None
+    token_type: Optional[str] = None
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+
+class VerifyEmailRequest(BaseModel):
+    token: str

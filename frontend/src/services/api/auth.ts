@@ -62,6 +62,27 @@ export async function register(data: RegisterData): Promise<RegisterResponse> {
     return apiRequest<RegisterResponse>('/auth/register', { method: 'POST', body: JSON.stringify(body) });
 }
 
+export async function verifyEmail(token: string): Promise<{ verified: boolean; email: string; message: string }> {
+    return apiRequest<{ verified: boolean; email: string; message: string }>('/auth/verify-email', {
+        method: 'POST',
+        body: JSON.stringify({ token }),
+    });
+}
+
+export async function forgotPassword(email: string): Promise<{ message: string }> {
+    return apiRequest<{ message: string }>('/auth/forgot-password', {
+        method: 'POST',
+        body: JSON.stringify({ email }),
+    });
+}
+
+export async function resetPassword(token: string, newPassword: string): Promise<{ message: string }> {
+    return apiRequest<{ message: string }>('/auth/reset-password', {
+        method: 'POST',
+        body: JSON.stringify({ token, new_password: new_password }),
+    });
+}
+
 export async function linkAnonymousSession(anonymousSessionId: string): Promise<{ credits_used: number; credits_remaining: number }> {
     const token = getToken();
     if (!token) throw new Error('No token');

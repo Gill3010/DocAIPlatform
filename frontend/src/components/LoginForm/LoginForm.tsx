@@ -75,6 +75,8 @@ export const LoginForm = ({
     const [isLogin, setIsLogin] = useState(initialMode === 'login');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
+    const [successMessage, setSuccessMessage] = useState('');
+    const [verificationUrl, setVerificationUrl] = useState<string | null>(null);
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
@@ -155,6 +157,8 @@ export const LoginForm = ({
         const next = !isLogin;
         setIsLogin(next);
         setError('');
+        setSuccessMessage('');
+        setVerificationUrl(null);
         setConfirmPassword('');
         setShowPassword(false);
         setShowConfirmPassword(false);
@@ -230,6 +234,7 @@ export const LoginForm = ({
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
         setError('');
+        setSuccessMessage('');
         setLoading(true);
 
         if (!isLogin && password !== confirmPassword) {
@@ -253,10 +258,33 @@ export const LoginForm = ({
                 await completeLogin();
             } else {
                 const response = await apiService.register({ email, password, full_name: fullName, turnstile_token: turnstile });
-                // Use the token returned directly from registration
-                setToken(response.access_token);
-                setStorageToken(response.access_token);
-                await completeLogin();
+                if (response.access_token) {
+                    setToken(response.access_token);
+                    setStorageToken(response.access_token);
+                    await completeLogin();
+                } else {
+                    setLoading(false);
+                    let msg = response.message || `Revisa tu correo (${response.email || email}) para activar tu cuenta.`;
+                    if (response.verification_url) {
+                        msg = 'Cuenta creada. Haz clic en el enlace de abajo para verificar (sin SES configurado, el correo no se envió).';
+                        setVerificationUrl(response.verification_url);
+                    } else {
+                        setVerificationUrl(null);
+                    }
+                    setSuccessMessage(msg);
+                    setEmail('');
+                    setPassword('');
+                    setConfirmPassword('');
+                    setFullName('');
+                    setConfirmPasswordTouched(false);
+                    setTurnstileToken(null);
+                    if (TURNSTILE_SITE_KEY && turnstileWidgetIdRef.current != null && typeof window !== 'undefined' && (window as Window & { turnstile?: { reset: (id: string) => void } }).turnstile) {
+                        (window as Window & { turnstile: { reset: (id: string) => void } }).turnstile.reset(turnstileWidgetIdRef.current);
+                    }
+                    setIsLogin(true);
+                    onModeChange?.(true);
+                    return;
+                }
             }
         } catch (err) {
             const message = err instanceof ApiError ? err.detail : err instanceof Error ? err.message : 'Ocurrió un error';
@@ -298,6 +326,16 @@ export const LoginForm = ({
             {error && (
                 <div className="login-error" role="alert">
                     {error}
+                </div>
+            )}
+            {successMessage && (
+                <div className="login-success" role="status">
+                    <p>{successMessage}</p>
+                    {verificationUrl && (
+                        <a href={verificationUrl} className="login-success-link" target="_blank" rel="noopener noreferrer">
+                            Verificar mi cuenta ahora →
+                        </a>
+                    )}
                 </div>
             )}
 
@@ -459,6 +497,13 @@ export const LoginForm = ({
             </form>
 
             <div className="login-footer">
+                {isLogin && (
+                    <p className="login-footer-forgot">
+                        <Link to="/auth/forgot-password" className="link-button">
+                            ¿Olvidaste tu contraseña?
+                        </Link>
+                    </p>
+                )}
                 <p>
                     {isLogin ? '¿No tienes cuenta? ' : '¿Ya tienes cuenta? '}
                     <button type="button" className="link-button" onClick={switchMode}>

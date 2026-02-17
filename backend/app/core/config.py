@@ -58,6 +58,11 @@ class Settings(BaseSettings):
     FACEBOOK_APP_ID: str = ""
     FACEBOOK_APP_SECRET: str = ""
 
+    # Amazon SES (verificación email, recuperación contraseña)
+    SES_FROM_EMAIL: str = ""  # ej. noreply@docaiplatform.com (debe estar verificado en SES)
+    SES_ENABLED: bool = False  # True cuando SES está configurado; si False, se loguea en lugar de enviar
+    AWS_SES_REGION: str = "us-east-1"  # Región donde verificaste la identidad (debe coincidir con la consola SES)
+
     # Cloudflare Turnstile (CAPTCHA)
     TURNSTILE_SECRET_KEY: str = ""
 

@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.core.exceptions import AppException
 from app.core.logging_config import setup_logging, get_logger
-from app.models import Organization, User, Payment  # noqa: F401 - register models for SQLAlchemy
+from app.models import Organization, User, AuthToken, Payment  # noqa: F401 - register models for SQLAlchemy
 from app.routers import auth, convert, pdf_tools, users, ai, admin, documents, payments, manuscript
 
 logger = get_logger(__name__)

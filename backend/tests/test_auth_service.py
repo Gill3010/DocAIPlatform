@@ -1,10 +1,13 @@
 """Tests for auth_service."""
+from datetime import datetime, timezone
+
 import pytest
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from backend.app.core.exceptions import InvalidInput, InvalidCredentials
 from backend.app.services.auth_service import register_user, authenticate_user
 from backend.app.core.security import get_password_hash
 from backend.app.models.user import User
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @pytest.mark.asyncio
@@ -31,6 +34,7 @@ async def test_authenticate_user_wrong_password(db_session: AsyncSession):
         hashed_password=get_password_hash("correct"),
         full_name="Auth User",
         auth_provider="email",
+        email_verified_at=datetime.now(timezone.utc),
     )
     db_session.add(user)
     await db_session.commit()
@@ -43,6 +47,9 @@ async def test_authenticate_user_wrong_password(db_session: AsyncSession):
 @pytest.mark.asyncio
 async def test_authenticate_user_success(db_session: AsyncSession):
     user = await register_user(db_session, "success@example.com", "mypassword", "Success User")
+    user.email_verified_at = datetime.now(timezone.utc)
+    await db_session.commit()
+    await db_session.refresh(user)
     token, token_type = await authenticate_user(db_session, "success@example.com", "mypassword")
     assert token_type == "bearer"
     assert isinstance(token, str) and len(token) > 0

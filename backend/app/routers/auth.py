@@ -5,7 +5,7 @@ from typing import Optional
 import secrets
 import uuid
 import urllib.parse
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 
 import httpx
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
@@ -25,10 +25,14 @@ from app.core.security import (
 )
 from app.models.user import User
 from app.models.anonymous_session import AnonymousSession
+from app.core.rate_limit import check_forgot_password_rate_limit
 from app.services.auth_service import (
     register_user as svc_register_user,
     authenticate_user as svc_authenticate_user,
     link_anonymous_session as svc_link_anonymous_session,
+    verify_email_token as svc_verify_email_token,
+    request_password_reset as svc_request_password_reset,
+    reset_password_with_token as svc_reset_password_with_token,
 )
 from app.schemas.token import (
     FacebookAuthRequest,
@@ -39,6 +43,9 @@ from app.schemas.token import (
     LinkAnonymousSessionResponse,
     Token,
     RegisterResponse,
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
+    VerifyEmailRequest,
 )
 from app.schemas.user import UserCreate, UserResponse
 
@@ -58,9 +65,9 @@ FACEBOOK_SCOPES = "email,public_profile"
     "/register",
     response_model=RegisterResponse,
     summary="Registrar usuario",
-    description="Crea una cuenta con email y contraseña. El usuario queda activo y recibe un token de acceso inmediato. Requiere token Turnstile si está configurado.",
+    description="Crea una cuenta con email y contraseña. Envía correo de verificación; el usuario debe verificar antes de iniciar sesión. Requiere token Turnstile si está configurado.",
     responses={
-        200: {"description": "Usuario creado y logueado correctamente"},
+        200: {"description": "Usuario creado; revisa tu correo para verificar la cuenta"},
         400: {"description": "Email ya registrado o verificación Turnstile fallida"},
     },
 )
@@ -75,22 +82,20 @@ async def register(
         remote_ip = request.client.host if request.client else None
         if not await verify_turnstile_token(user.turnstile_token, remote_ip):
             raise HTTPException(status_code=400, detail="Verificación de seguridad fallida. Intenta de nuevo.")
-    
-    new_user = await svc_register_user(
+
+    new_user, verify_token = await svc_register_user(
         db, email=user.email, password=user.password, full_name=user.full_name
     )
-    
-    # Generate token immediately
-    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": new_user.email}, expires_delta=access_token_expires
-    )
-    
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "user": new_user
+
+    base_url = settings.FRONTEND_URL.rstrip("/")
+    resp = {
+        "message": "Revisa tu correo para activar tu cuenta. Te enviamos un enlace de verificación.",
+        "email": new_user.email,
     }
+    if not settings.SES_ENABLED or not settings.SES_FROM_EMAIL:
+        resp["verification_url"] = f"{base_url}/auth/verify-email?token={verify_token}"
+        resp["message"] = "Cuenta creada. (SES no configurado: usa el enlace abajo para verificar)"
+    return resp
 
 @router.post(
     "/login",
@@ -150,6 +155,77 @@ async def link_anonymous_session(
         credits_used=credits_used,
         credits_remaining=credits_remaining,
     )
+
+
+@router.post(
+    "/verify-email",
+    summary="Verificar correo",
+    description="Valida el token de verificación enviado por email.",
+    responses={
+        200: {"description": "Email verificado correctamente"},
+        400: {"description": "Token inválido o expirado"},
+    },
+)
+async def verify_email(
+    data: VerifyEmailRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    from app.core.exceptions import InvalidInput
+    import logging
+    logger = logging.getLogger(__name__)
+    try:
+        user = await svc_verify_email_token(db, data.token)
+        return {"verified": True, "email": user.email, "message": "Email verificado. Ya puedes iniciar sesión."}
+    except InvalidInput as e:
+        raise HTTPException(status_code=400, detail=e.detail)
+    except Exception as e:
+        logger.exception("verify_email failed: %s", e)
+        raise HTTPException(
+            status_code=500,
+            detail="Error interno al verificar. Verifica que la migración de base de datos se ejecutó (migrate_auth_tokens.py).",
+        )
+
+
+@router.post(
+    "/forgot-password",
+    summary="Solicitar recuperación de contraseña",
+    description="Envía un correo con enlace para restablecer contraseña. Siempre devuelve el mismo mensaje (evitar enumeración). Rate limit: 5 req/15min por IP.",
+    responses={200: {"description": "Si el email existe, recibirás un correo"}},
+)
+async def forgot_password(
+    data: ForgotPasswordRequest,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+):
+    remote_ip = request.client.host if request.client else "unknown"
+    if not check_forgot_password_rate_limit(remote_ip):
+        raise HTTPException(
+            status_code=429,
+            detail="Demasiadas solicitudes. Intenta de nuevo en 15 minutos.",
+        )
+    await svc_request_password_reset(db, data.email)
+    return {"message": "Si existe una cuenta con ese email, recibirás un enlace para restablecer tu contraseña."}
+
+
+@router.post(
+    "/reset-password",
+    summary="Restablecer contraseña con token",
+    description="Valida el token recibido por email y actualiza la contraseña.",
+    responses={
+        200: {"description": "Contraseña actualizada. Ya puedes iniciar sesión."},
+        400: {"description": "Token inválido o expirado"},
+    },
+)
+async def reset_password(
+    data: ResetPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    from app.core.exceptions import InvalidInput
+    try:
+        await svc_reset_password_with_token(db, data.token, data.new_password)
+        return {"message": "Contraseña actualizada. Ya puedes iniciar sesión."}
+    except InvalidInput as e:
+        raise HTTPException(status_code=400, detail=e.detail)
 
 
 # --- Google OAuth ---
@@ -340,6 +416,7 @@ async def google_auth(data: GoogleAuthRequest, db: AsyncSession = Depends(get_db
             hashed_password=None,
             auth_provider="google",
             provider_user_id=provider_user_id,
+            email_verified_at=datetime.now(timezone.utc),  # OAuth verifica email
         )
         db.add(user)
         await db.commit()
@@ -443,6 +520,7 @@ async def facebook_auth(data: FacebookAuthRequest, db: AsyncSession = Depends(ge
             hashed_password=None,
             auth_provider="facebook",
             provider_user_id=provider_user_id,
+            email_verified_at=datetime.now(timezone.utc),  # OAuth verifica email
         )
         db.add(user)
         await db.commit()

@@ -96,6 +96,46 @@
     color: var(--color-error);
 }
 
+/* ===== Mensaje de éxito (verificación email) ===== */
+.login-success {
+    padding: var(--spacing-md);
+    background: #d4edda;
+    border: 1px solid #28a745;
+    border-radius: var(--radius-md);
+    color: #155724;
+    font-size: var(--font-size-sm);
+    margin-bottom: var(--spacing-lg);
+}
+
+.login-success p {
+    margin: 0 0 var(--spacing-sm);
+}
+
+.login-success-link {
+    display: inline-block;
+    margin-top: var(--spacing-sm);
+    font-weight: 600;
+    color: #155724;
+    text-decoration: underline;
+}
+
+.login-success-link:hover {
+    color: #0d3d1a;
+}
+
+[data-theme="dark"] .login-success {
+    background: rgba(40, 167, 69, 0.2);
+    color: #90ee90;
+}
+
+[data-theme="dark"] .login-success-link {
+    color: #90ee90;
+}
+
+[data-theme="dark"] .login-success-link:hover {
+    color: #b8f0b8;
+}
+
 /* ===== Login social ===== */
 .login-social {
     display: flex;
@@ -368,6 +408,10 @@
 
 .login-footer p {
     margin: 0;
+}
+
+.login-footer-forgot {
+    margin-bottom: var(--spacing-sm);
 }
 
 .login-footer-back {

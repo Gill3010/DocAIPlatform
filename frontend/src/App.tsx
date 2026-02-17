@@ -11,6 +11,9 @@ import './styles/global.css';
 // Route-based code splitting: load pages on demand
 const AuthCallback = lazy(() => import('./pages/AuthCallback/AuthCallback').then(m => ({ default: m.AuthCallback })));
 const AuthCallbackFacebook = lazy(() => import('./pages/AuthCallback/AuthCallbackFacebook').then(m => ({ default: m.AuthCallbackFacebook })));
+const VerifyEmail = lazy(() => import('./pages/VerifyEmail/VerifyEmail').then(m => ({ default: m.VerifyEmail })));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword/ForgotPassword').then(m => ({ default: m.ForgotPassword })));
+const ResetPassword = lazy(() => import('./pages/ResetPassword/ResetPassword').then(m => ({ default: m.ResetPassword })));
 const DashboardLayout = lazy(() => import('./pages/DashboardLayout').then(m => ({ default: m.DashboardLayout })));
 const Dashboard = lazy(() => import('./pages/Dashboard/Dashboard').then(m => ({ default: m.Dashboard })));
 const Convert = lazy(() => import('./pages/Convert/Convert').then(m => ({ default: m.Convert })));
@@ -99,6 +102,9 @@ function App() {
             <Route path="/login" element={<LoginRoute />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/auth/callback/facebook" element={<AuthCallbackFacebook />} />
+            <Route path="/auth/verify-email" element={<VerifyEmail />} />
+            <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+            <Route path="/auth/reset-password" element={<ResetPassword />} />
             <Route path="/admin" element={<RequireAdmin><Admin /></RequireAdmin>} />
             <Route path="/admin/users" element={<RequireAdmin><Admin /></RequireAdmin>} />
             <Route path="/admin/users/:id" element={<RequireAdmin><AdminUserDetail /></RequireAdmin>} />
