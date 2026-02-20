@@ -1,0 +1,20 @@
+
+; <<>> DiG 9.18.33 <<>> MX docaiplatform.com
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 61070
+;; flags: qr rd ra; QUERY: 1, ANSWER: 0, AUTHORITY: 1, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 4096
+;; QUESTION SECTION:
+;docaiplatform.com.		IN	MX
+
+;; AUTHORITY SECTION:
+docaiplatform.com.	1794	IN	SOA	brodie.ns.cloudflare.com. dns.cloudflare.com. 2396929929 10000 2400 604800 1800
+
+;; Query time: 9 msec
+;; SERVER: 172.31.0.2#53(172.31.0.2) (UDP)
+;; WHEN: Wed Feb 18 23:03:05 UTC 2026
+;; MSG SIZE  rcvd: 107
+

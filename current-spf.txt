@@ -1,0 +1,20 @@
+
+; <<>> DiG 9.18.33 <<>> TXT docaiplatform.com
+;; global options: +cmd
+;; Got answer:
+;; ->>HEADER<<- opcode: QUERY, status: NOERROR, id: 61481
+;; flags: qr rd ra; QUERY: 1, ANSWER: 1, AUTHORITY: 0, ADDITIONAL: 1
+
+;; OPT PSEUDOSECTION:
+; EDNS: version: 0, flags:; udp: 4096
+;; QUESTION SECTION:
+;docaiplatform.com.		IN	TXT
+
+;; ANSWER SECTION:
+docaiplatform.com.	3600	IN	TXT	"google-site-verification=xxlqk6Xaq4bPNPEl_HFnGU6IdSn5J3qvyvPCvUlqzMM"
+
+;; Query time: 0 msec
+;; SERVER: 172.31.0.2#53(172.31.0.2) (UDP)
+;; WHEN: Wed Feb 18 23:08:21 UTC 2026
+;; MSG SIZE  rcvd: 127
+

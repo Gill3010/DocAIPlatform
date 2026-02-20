@@ -1,0 +1,25 @@
+<?xml version="1.0" ?>
+<document>
+  <metadata>
+    <filename>test_document.docx</filename>
+    <paragraphs_count>3</paragraphs_count>
+    <tables_count>1</tables_count>
+  </metadata>
+  <paragraphs>
+    <paragraph id="0" style="Title">Documento de Prueba DocAI</paragraph>
+    <paragraph id="1" style="Normal">Este es un párrafo de prueba para DocAI Platform.</paragraph>
+    <paragraph id="2" style="Normal">Segundo párrafo con más contenido para analizar.</paragraph>
+  </paragraphs>
+  <tables>
+    <table id="0">
+      <row id="0">
+        <cell id="0">Columna 1</cell>
+        <cell id="1">Columna 2</cell>
+      </row>
+      <row id="1">
+        <cell id="0">Dato 1</cell>
+        <cell id="1">Dato 2</cell>
+      </row>
+    </table>
+  </tables>
+</document>

@@ -1,0 +1,6 @@
+=== ANÁLISIS DocAI Platform ===
+Archivo: test_document.docx
+Fecha: 2026-02-18 11:08:47
+Sesión: 20260218_110837
+
+❌ Error invocando Bedrock: An error occurred (ThrottlingException) when calling the InvokeModel operation (reached max retries: 4): Too many tokens per day, please wait before trying again.
