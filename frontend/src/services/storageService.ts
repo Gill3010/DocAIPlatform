@@ -7,6 +7,7 @@ const TOKEN_KEY = 'token';
 const ANON_SESSION_KEY = 'anon_session_id';
 const ANON_USED_KEY = 'anon_conversions_used';
 const PENDING_ANON_SESSION_KEY = 'pending_anon_session_id';
+const CHECKOUT_INTENT_KEY = 'checkout_intent';
 
 function getStorage(type: 'local' | 'session'): Storage | null {
     if (typeof window === 'undefined') return null;
@@ -109,12 +110,39 @@ export function removePendingAnonymousSessionId(): void {
     removeItem(PENDING_ANON_SESSION_KEY, 'session');
 }
 
+// --- Checkout intent (sessionStorage, survives OAuth redirect) ---
+export interface CheckoutIntent {
+    planId: string;
+    planName: string;
+    planPrice: number;
+    currency?: string;
+}
+
+export function getCheckoutIntent(): CheckoutIntent | null {
+    const raw = getItem(CHECKOUT_INTENT_KEY, 'session');
+    if (!raw) return null;
+    try {
+        return JSON.parse(raw) as CheckoutIntent;
+    } catch {
+        return null;
+    }
+}
+
+export function setCheckoutIntent(intent: CheckoutIntent): void {
+    setItem(CHECKOUT_INTENT_KEY, JSON.stringify(intent), 'session');
+}
+
+export function removeCheckoutIntent(): void {
+    removeItem(CHECKOUT_INTENT_KEY, 'session');
+}
+
 // --- Genérico (por si se necesita otra clave) ---
 export const storageKeys = {
     TOKEN_KEY,
     ANON_SESSION_KEY,
     ANON_USED_KEY,
     PENDING_ANON_SESSION_KEY,
+    CHECKOUT_INTENT_KEY,
 } as const;
 
 export const storageService = {
@@ -130,6 +158,9 @@ export const storageService = {
     getPendingAnonymousSessionId,
     setPendingAnonymousSessionId,
     removePendingAnonymousSessionId,
+    getCheckoutIntent,
+    setCheckoutIntent,
+    removeCheckoutIntent,
     getItem: (key: string, type?: 'local' | 'session') => getItem(key, type ?? 'local'),
     setItem: (key: string, value: string, type?: 'local' | 'session') => setItem(key, value, type ?? 'local'),
     removeItem: (key: string, type?: 'local' | 'session') => removeItem(key, type ?? 'local'),

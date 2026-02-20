@@ -21,7 +21,7 @@ export const AIAssistantTrigger = ({ onClick, isOpen = false, badge }: AIAssista
                 <MessageCircle size={20} strokeWidth={2} />
                 <Sparkles size={12} className="ai-assistant-trigger__sparkle" aria-hidden />
             </span>
-            <span className="ai-assistant-trigger__label">DocAI</span>
+            <span className="ai-assistant-trigger__label">AI</span>
             {badge !== undefined && (
                 <span className="ai-assistant-trigger__badge" aria-hidden>
                     {badge === '∞' ? '∞' : badge}

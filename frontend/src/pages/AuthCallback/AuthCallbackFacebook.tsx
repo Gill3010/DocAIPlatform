@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiService } from '../../services/api';
 import { useAppStore } from '../../stores/appStore';
-import { setToken as setStorageToken, getPendingAnonymousSessionId, removePendingAnonymousSessionId } from '../../services/storageService';
+import { setToken as setStorageToken, getPendingAnonymousSessionId, removePendingAnonymousSessionId, getCheckoutIntent } from '../../services/storageService';
 import { clearAnonymousSession, getStoredSessionId } from '../../utils/anonymousSession';
 import './AuthCallback.css';
 
@@ -58,7 +58,8 @@ export const AuthCallbackFacebook = () => {
                     .getProfile()
                     .then((profile) => setUser(profile))
                     .catch(() => {});
-                navigate('/dashboard', { replace: true });
+                const hasCheckoutIntent = getCheckoutIntent() !== null;
+                navigate(hasCheckoutIntent ? '/pricing' : '/dashboard', { replace: true });
             })
             .catch((err) => {
                 const msg = err instanceof Error ? err.message : 'Error al iniciar sesión con Facebook';

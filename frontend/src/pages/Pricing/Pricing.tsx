@@ -4,6 +4,8 @@ import { Tag } from 'lucide-react';
 import { PaymentModal } from '../../components/Payment/PaymentModal';
 import { useAppStore } from '../../stores/appStore';
 import { apiService } from '../../services/api';
+import { getToken } from '../../services/storageService';
+import { setCheckoutIntent, getCheckoutIntent, removeCheckoutIntent } from '../../services/storageService';
 import './Pricing.css';
 
 const PLANS = [
@@ -65,12 +67,35 @@ export const Pricing = () => {
         }
     }, [fromModal, highlightPlanId]);
 
+    // Tras login/registro: abrir modal de pago si hay intención pendiente
+    useEffect(() => {
+        const intent = getCheckoutIntent();
+        const token = getToken();
+        if (intent && token) {
+            removeCheckoutIntent();
+            setSelectedPlan({
+                id: intent.planId,
+                name: intent.planName,
+                price: intent.planPrice,
+                currency: intent.currency,
+            });
+        }
+    }, []);
+
     const handleSelectPlan = (plan: typeof PLANS[0]) => {
         if (plan.price > 0) {
+            const token = getToken();
+            if (!token) {
+                setCheckoutIntent({
+                    planId: plan.id,
+                    planName: plan.name,
+                    planPrice: plan.price,
+                    currency: plan.currency,
+                });
+                navigate('/login', { state: { returnTo: '/pricing', checkoutPlan: plan.id }, replace: false });
+                return;
+            }
             setSelectedPlan(plan);
-        } else {
-            // Already handled by existing logic or just redirect to dashboard
-            // But here we focus on paid plans
         }
     };
 

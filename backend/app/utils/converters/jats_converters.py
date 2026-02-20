@@ -345,6 +345,10 @@ class DocxToJATSConverter(BaseConverter):
         journal_title.text = 'Article'
         abbrev = etree.SubElement(journal_title_group, 'abbrev-journal-title', {'abbrev-type': 'publisher'})
         abbrev.text = 'Article'
+        # publisher-name requerido por Lens (lensGalley) - sin él querySelector devuelve null y falla .textContent
+        publisher = etree.SubElement(journal_meta, 'publisher')
+        publisher_name = etree.SubElement(publisher, 'publisher-name')
+        publisher_name.text = 'Article'
 
         article_meta = etree.SubElement(front, 'article-meta')
         article_id = etree.SubElement(article_meta, 'article-id', {'pub-id-type': 'other'})
@@ -465,6 +469,14 @@ class DocxToJATSConverter(BaseConverter):
                         for cell_text in row:
                             td = etree.SubElement(tr, 'td')
                             td.text = cell_text or ''
+
+        # Si body quedó vacío, agregar sec mínima (OJS/Lens espera contenido)
+        if len(body) == 0:
+            sec = etree.SubElement(body, 'sec')
+            title = etree.SubElement(sec, 'title')
+            title.text = 'Contenido'
+            p = etree.SubElement(sec, 'p')
+            p.text = 'Documento convertido.'
 
         # Figuras section (OJS: upload these as dependent files)
         if image_filenames:

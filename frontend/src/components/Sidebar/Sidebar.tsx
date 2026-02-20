@@ -77,15 +77,6 @@ export const Sidebar = () => {
 
     return (
         <>
-            {/* Backdrop overlay - closes sidebar when clicked */}
-            {!sidebarCollapsed && (
-                <div
-                    className="sidebar-backdrop"
-                    onClick={toggleSidebar}
-                    aria-label="Cerrar menú"
-                />
-            )}
-
             <aside className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
                 <div className="sidebar-header">
                     {!sidebarCollapsed && (
@@ -101,7 +92,8 @@ export const Sidebar = () => {
                         className="sidebar-toggle"
                         onClick={toggleSidebar}
                         aria-label={sidebarCollapsed ? 'Expandir menú' : 'Colapsar menú'}
-                        title={sidebarCollapsed ? 'Expandir menú' : 'Colapsar menú'}
+                        onMouseEnter={(e) => showTooltip(e.currentTarget, sidebarCollapsed ? 'Expandir menú' : 'Colapsar menú')}
+                        onMouseLeave={hideTooltip}
                     >
                         {sidebarCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
                     </button>

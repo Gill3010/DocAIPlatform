@@ -78,18 +78,25 @@ export const DashboardLayout = () => {
                                 />
                             )}
                             <SettingsMenu
-                            isOpen={openHeaderMenu === 'settings'}
-                            onToggle={() => setOpenHeaderMenu((v) => (v === 'settings' ? null : 'settings'))}
-                            onClose={() => setOpenHeaderMenu(null)}
-                        />
-                        <MoreMenu
-                            isOpen={openHeaderMenu === 'more'}
-                            onToggle={() => setOpenHeaderMenu((v) => (v === 'more' ? null : 'more'))}
-                            onClose={() => setOpenHeaderMenu(null)}
-                        />
-                    </div>
+                                isOpen={openHeaderMenu === 'settings'}
+                                onToggle={() => setOpenHeaderMenu((v) => (v === 'settings' ? null : 'settings'))}
+                                onClose={() => setOpenHeaderMenu(null)}
+                            />
+                            <MoreMenu
+                                isOpen={openHeaderMenu === 'more'}
+                                onToggle={() => setOpenHeaderMenu((v) => (v === 'more' ? null : 'more'))}
+                                onClose={() => setOpenHeaderMenu(null)}
+                            />
+                        </div>
                 </header>
-                <div className="main-below-header">
+                <div
+                    className="main-below-header"
+                    onClick={() => {
+                        if (!sidebarCollapsed && window.matchMedia('(max-width: 768px)').matches) {
+                            toggleSidebar();
+                        }
+                    }}
+                >
                     {isAnonymous && (
                         <div className="assistant-bar-below-header" aria-label="Asistente IA">
                             <AIAssistantTrigger

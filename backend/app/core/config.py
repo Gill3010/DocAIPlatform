@@ -30,6 +30,13 @@ class Settings(BaseSettings):
     USE_OCR_FOR_SCANNED_PDF: bool = True   # OCR para PDF escaneados
     USE_CAMELOT_FALLBACK: bool = True      # Fallback camelot en PDF→Excel
 
+    # Word-to-JATS Ensemble (conversión avanzada docx→xml para OJS)
+    USE_JATS_ENSEMBLE: bool = False        # True = usar flujo docx→xml (Bedrock o local)
+    GROBID_URL: str = ""                    # URL de GROBID (ej. http://localhost:8070)
+    USE_BEDROCK_FOR_JATS: bool = False      # True = intentar Bedrock primero; fallback a local si falla
+    BEDROCK_REGION: str = "us-east-1"       # Región para Bedrock (Claude; distinta de ECS si aplica)
+    BEDROCK_MODEL_ID: str = "anthropic.claude-sonnet-4-20250514-v1:0"  # Claude Sonnet 4 (disponible en us-east-2)
+
     # ECS Fargate converter (nuevo sistema)
     USE_ECS_CONVERTER: bool = True  # True = usar ECS; False = convertir local
     AWS_REGION: str = "us-east-2"

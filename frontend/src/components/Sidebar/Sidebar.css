@@ -1,32 +1,8 @@
-/* Backdrop overlay - Subtle on desktop, visible on mobile */
-.sidebar-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(10, 37, 64, 0.2);
-    /* Azul oscuro con transparencia */
-    z-index: calc(var(--z-fixed) - 1);
-    animation: fadeIn 0.2s ease-out;
-    cursor: pointer;
-}
-
-@keyframes fadeIn {
-    from {
-        opacity: 0;
-    }
-
-    to {
-        opacity: 1;
-    }
-}
-
 .sidebar {
     position: fixed;
     left: 0;
-    top: 0;
-    height: 100vh;
+    top: var(--header-height);
+    bottom: var(--footer-height);
     width: var(--sidebar-width);
     background: var(--color-surface);
     border-right: 1px solid var(--color-border);
@@ -150,6 +126,7 @@
 
 .sidebar-nav {
     flex: 1;
+    min-height: 0;
     padding: var(--spacing-md);
     display: flex;
     flex-direction: column;
@@ -449,14 +426,16 @@
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
 
-    /* More visible backdrop on mobile */
-    .sidebar-backdrop {
-        background: rgba(10, 37, 64, 0.5);
-    }
-
     .sidebar {
         transform: translateX(-100%);
         box-shadow: var(--shadow-xl);
+        bottom: 56px;
+        overscroll-behavior: contain;
+    }
+
+    .sidebar .sidebar-nav {
+        overscroll-behavior: contain;
+        -webkit-overflow-scrolling: touch;
     }
 
     .sidebar.collapsed {
@@ -468,5 +447,12 @@
     .sidebar:not(.collapsed) {
         transform: translateX(0);
         width: var(--sidebar-width);
+    }
+}
+
+@media (max-width: 480px) {
+
+    .sidebar {
+        bottom: 52px;
     }
 }
