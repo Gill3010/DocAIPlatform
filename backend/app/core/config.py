@@ -65,10 +65,13 @@ class Settings(BaseSettings):
     FACEBOOK_APP_ID: str = ""
     FACEBOOK_APP_SECRET: str = ""
 
-    # Amazon SES (verificación email, recuperación contraseña)
-    SES_FROM_EMAIL: str = ""  # ej. noreply@docaiplatform.com (debe estar verificado en SES)
-    SES_ENABLED: bool = False  # True cuando SES está configurado; si False, se loguea en lugar de enviar
-    AWS_SES_REGION: str = "us-east-1"  # Región donde verificaste la identidad (debe coincidir con la consola SES)
+    # Email transaccional (verificación, recuperación contraseña)
+    # Resend (prioridad 1 si RESEND_API_KEY está definido)
+    RESEND_API_KEY: str = ""  # re_xxxx desde dashboard.resend.com
+    # Amazon SES (prioridad 2, fallback cuando Resend no está configurado)
+    SES_FROM_EMAIL: str = ""  # Remitente compartido (ej. noreply@docaiplatform.com); debe estar verificado en el proveedor activo
+    SES_ENABLED: bool = False  # True cuando SES está configurado
+    AWS_SES_REGION: str = "us-east-1"  # Región donde verificaste la identidad en SES
 
     # Cloudflare Turnstile (CAPTCHA)
     TURNSTILE_SECRET_KEY: str = ""

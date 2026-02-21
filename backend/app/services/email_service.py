@@ -1,21 +1,124 @@
 """
 Email service - verificación de email y recuperación de contraseña.
-Usa Amazon SES cuando está configurado; si no, solo registra en logs (para desarrollo).
+Proveedores: Resend (prioridad 1) > Amazon SES (prioridad 2) > log solamente (desarrollo).
 """
 from __future__ import annotations
 
 import logging
 from typing import Optional
 
+import httpx
+
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+RESEND_API_URL = "https://api.resend.com/emails"
+
+
+def _get_from_email() -> str:
+    """Remitente compartido para todos los proveedores."""
+    return settings.SES_FROM_EMAIL or ""
+
+
+def _send_via_resend(to: str, subject: str, html_body: str, text_body: str) -> bool:
+    """Envía email vía Resend API."""
+    from_email = _get_from_email()
+    if not from_email:
+        logger.warning("Resend configurado pero SES_FROM_EMAIL vacío - no se puede enviar")
+        return False
+
+    payload = {
+        "from": from_email,
+        "to": [to],
+        "subject": subject,
+        "html": html_body,
+        "text": text_body,
+    }
+
+    try:
+        with httpx.Client(timeout=30.0) as client:
+            resp = client.post(
+                RESEND_API_URL,
+                headers={
+                    "Authorization": f"Bearer {settings.RESEND_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json=payload,
+            )
+        if resp.status_code in (200, 201):
+            logger.info("Email enviado (Resend) a %s: %s", to, subject)
+            return True
+        logger.error(
+            "Resend error %s: %s - %s",
+            resp.status_code,
+            resp.text,
+            to,
+        )
+        return False
+    except Exception as e:
+        logger.exception("Error enviando email (Resend) a %s: %s", to, e)
+        return False
+
+
+def _send_via_ses(to: str, subject: str, html_body: str, text_body: str) -> bool:
+    """Envía email vía Amazon SES."""
+    try:
+        import boto3
+
+        region = getattr(settings, "AWS_SES_REGION", None) or settings.AWS_REGION
+        client = boto3.client("ses", region_name=region)
+        client.send_email(
+            Source=_get_from_email(),
+            Destination={"ToAddresses": [to]},
+            Message={
+                "Subject": {"Data": subject, "Charset": "UTF-8"},
+                "Body": {
+                    "Html": {"Data": html_body, "Charset": "UTF-8"},
+                    "Text": {"Data": text_body, "Charset": "UTF-8"},
+                },
+            },
+        )
+        logger.info("Email enviado (SES) a %s: %s", to, subject)
+        return True
+    except Exception as e:
+        logger.exception("Error enviando email (SES) a %s: %s", to, e)
+        return False
+
+
+def _send_email(to: str, subject: str, html_body: str, text_body: str) -> bool:
+    """
+    Envía email.
+    Prioridad: Resend (si RESEND_API_KEY) > SES (si SES_ENABLED) > log solamente.
+    """
+    from_email = _get_from_email()
+
+    if not from_email:
+        logger.info(
+            "Email no configurado - simulado: to=%s subject=%s "
+            "(añade RESEND_API_KEY o SES_FROM_EMAIL + SES_ENABLED)",
+            to,
+            subject,
+        )
+        return True
+
+    if settings.RESEND_API_KEY:
+        return _send_via_resend(to, subject, html_body, text_body)
+
+    if settings.SES_ENABLED:
+        return _send_via_ses(to, subject, html_body, text_body)
+
+    logger.info(
+        "Email simulado (sin proveedor): to=%s subject=%s",
+        to,
+        subject,
+    )
+    return True
 
 
 def send_verification_email(to_email: str, token: str, full_name: Optional[str] = None) -> bool:
     """
     Envía email de verificación de cuenta.
-    Si SES no está configurado, registra en log y retorna True (para desarrollo).
     """
     verify_url = f"{settings.FRONTEND_URL.rstrip('/')}/auth/verify-email?token={token}"
     subject = "Verifica tu correo - DocAI Platform"
@@ -44,7 +147,6 @@ def send_verification_email(to_email: str, token: str, full_name: Optional[str] 
 def send_password_reset_email(to_email: str, token: str, full_name: Optional[str] = None) -> bool:
     """
     Envía email con enlace para restablecer contraseña.
-    Si SES no está configurado, registra en log y retorna True (para desarrollo).
     """
     reset_url = f"{settings.FRONTEND_URL.rstrip('/')}/auth/reset-password?token={token}"
     subject = "Restablecer contraseña - DocAI Platform"
@@ -68,34 +170,3 @@ def send_password_reset_email(to_email: str, token: str, full_name: Optional[str
     text_body = f"Hola {name},\n\nRestablece tu contraseña en: {reset_url}\n\nExpira en 1 hora."
 
     return _send_email(to_email, subject, html_body, text_body)
-
-
-def _send_email(to: str, subject: str, html_body: str, text_body: str) -> bool:
-    """Envía email vía SES o registra en log si no está configurado."""
-    if not settings.SES_ENABLED or not settings.SES_FROM_EMAIL:
-        logger.info(
-            "SES no configurado - email simulado: to=%s subject=%s (configure SES_FROM_EMAIL y SES_ENABLED=true)",
-            to, subject
-        )
-        return True
-
-    try:
-        import boto3
-        region = getattr(settings, "AWS_SES_REGION", None) or settings.AWS_REGION
-        client = boto3.client("ses", region_name=region)
-        client.send_email(
-            Source=settings.SES_FROM_EMAIL,
-            Destination={"ToAddresses": [to]},
-            Message={
-                "Subject": {"Data": subject, "Charset": "UTF-8"},
-                "Body": {
-                    "Html": {"Data": html_body, "Charset": "UTF-8"},
-                    "Text": {"Data": text_body, "Charset": "UTF-8"},
-                },
-            },
-        )
-        logger.info("Email enviado a %s: %s", to, subject)
-        return True
-    except Exception as e:
-        logger.exception("Error enviando email a %s: %s", to, e)
-        return False

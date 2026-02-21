@@ -71,7 +71,7 @@ export const ForgotPassword = () => {
                 )}
 
                 <p className="forgot-password-footer">
-                    <Link to="/login" className="link-button">
+                    <Link to="/login" className="forgot-password-btn forgot-password-btn--link">
                         ← Volver al inicio de sesión
                     </Link>
                 </p>

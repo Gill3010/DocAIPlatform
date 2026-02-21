@@ -92,9 +92,12 @@ async def register(
         "message": "Revisa tu correo para activar tu cuenta. Te enviamos un enlace de verificación.",
         "email": new_user.email,
     }
-    if not settings.SES_ENABLED or not settings.SES_FROM_EMAIL:
+    email_configured = bool(settings.RESEND_API_KEY) or (
+        settings.SES_ENABLED and settings.SES_FROM_EMAIL
+    )
+    if not email_configured:
         resp["verification_url"] = f"{base_url}/auth/verify-email?token={verify_token}"
-        resp["message"] = "Cuenta creada. (SES no configurado: usa el enlace abajo para verificar)"
+        resp["message"] = "Cuenta creada. (Email no configurado: usa el enlace abajo para verificar)"
     return resp
 
 @router.post(
