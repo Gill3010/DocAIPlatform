@@ -7,6 +7,8 @@ from app.models.admin_audit_log import AdminAuditLog
 from app.models.pdf_tool_use import PdfToolUse
 from app.models.document import Document, DocumentPermission
 from app.models.payment import Payment
+from app.models.chat_session import ChatSession
+from app.models.chat_message import ChatMessage
 
 __all__ = [
     "Organization",
@@ -19,4 +21,6 @@ __all__ = [
     "Document",
     "DocumentPermission",
     "Payment",
+    "ChatSession",
+    "ChatMessage",
 ]

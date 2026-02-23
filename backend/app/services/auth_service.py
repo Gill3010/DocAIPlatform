@@ -3,6 +3,7 @@ Auth service - registration, login, verification, password reset, anonymous sess
 """
 from __future__ import annotations
 
+import logging
 import hashlib
 import secrets
 from datetime import datetime, timedelta, timezone
@@ -22,6 +23,8 @@ from app.models.user import User
 from app.models.auth_token import AuthToken
 from app.models.anonymous_session import AnonymousSession
 from app.services.email_service import send_verification_email, send_password_reset_email
+
+logger = logging.getLogger(__name__)
 
 # Expiración de tokens
 EMAIL_VERIFICATION_EXPIRE_HOURS = 24
@@ -132,10 +135,18 @@ async def request_password_reset(db: AsyncSession, email: str) -> None:
     Si existe un usuario con ese email (auth_provider=email), genera token y envía correo.
     Siempre retorna sin error (evitar enumeración de emails).
     """
+    logger.info("Solicitud de recuperación de contraseña para: %s", email)
     result = await db.execute(select(User).where(User.email == email))
     user = result.scalar_one_or_none()
-    if not user or user.auth_provider != "email" or not user.hashed_password:
+    
+    if not user:
+        logger.warning("Recuperación fallida: Usuario no encontrado para %s", email)
         return
+        
+    if user.auth_provider != "email" or not user.hashed_password:
+        logger.warning("Recuperación fallida: El usuario %s usa proveedor %s (sin password local)", email, user.auth_provider)
+        return
+
 
     token = secrets.token_urlsafe(32)
     token_hash = _hash_token(token)

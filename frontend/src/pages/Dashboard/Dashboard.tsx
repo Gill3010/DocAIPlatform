@@ -1,14 +1,12 @@
-import { useState, useEffect, useMemo } from 'react';
-import { BarChart3, Clock, CheckCircle, Zap, History, FileEdit, FileText } from 'lucide-react';
+import { useMemo } from 'react';
+import { History, FileEdit, FileText } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAppStore } from '../../stores/appStore';
-import { useAnonymousSession } from '../../hooks/useAnonymousSession';
 
 import { QuickActionCard } from '../../components/QuickActionCard/QuickActionCard';
 import { ConversionCard } from '../../components/ConversionCard/ConversionCard';
-import { MetricsSummary } from '../../components/MetricsSummary/MetricsSummary';
+import { ValueBanner } from '../../components/ValueBanner/ValueBanner';
 import { ConversionSearch } from '../../components/ConversionSearch/ConversionSearch';
-import { apiService } from '../../services/api';
 import {
     getDashboardConversions,
     CONVERSION_CATEGORY_LABELS,
@@ -22,160 +20,8 @@ import { useDashboardSearch } from '../../contexts/DashboardSearchContext';
 import './Dashboard.css';
 
 export const Dashboard = () => {
-    const { token, user } = useAppStore();
-    const { creditsRemaining: anonRemaining, anonymousLimit, anonymousConversionsUsed, sessionId: anonSessionId } = useAnonymousSession();
+    const { token } = useAppStore();
     const isAnonymous = !token;
-    const isPremiumUser = user?.is_superuser === true || user?.is_premium === true;
-
-    const [stats, setStats] = useState([
-        {
-            icon: BarChart3,
-            value: '...',
-            label: 'Conversiones Totales',
-            trend: { value: 0, isPositive: true },
-            gradient: 'gradient-primary'
-        },
-        {
-            icon: Clock,
-            value: '...',
-            label: 'Créditos',
-            gradient: 'gradient-warning'
-        },
-        {
-            icon: CheckCircle,
-            value: '...',
-            label: 'Tasa de Éxito',
-            trend: { value: 0, isPositive: true },
-            gradient: 'gradient-success'
-        },
-        {
-            icon: Zap,
-            value: '...',
-            label: 'Tiempo Promedio',
-            trend: { value: 0, isPositive: false },
-            gradient: 'gradient-info'
-        }
-    ]);
-
-
-    const [chartData, setChartData] = useState<{
-        successRate: number | null;
-        creditsRemaining: number;
-        creditsTotal: number;
-        creditsUnlimited: boolean;
-    }>({ successRate: null, creditsRemaining: 0, creditsTotal: 0, creditsUnlimited: false });
-
-    useEffect(() => {
-        loadStats();
-    }, [isAnonymous, anonRemaining, isPremiumUser, anonSessionId]);
-
-    const loadStats = async () => {
-        if (isAnonymous) {
-            // ... (keep anonymous logic same)
-            try {
-                const anonData = await apiService.getAnonymousStats(anonSessionId);
-                setStats([
-                    {
-                        icon: BarChart3,
-                        value: String(anonymousConversionsUsed),
-                        label: 'Conversiones Totales',
-                        trend: { value: 0, isPositive: true },
-                        gradient: 'gradient-primary'
-                    },
-                    {
-                        icon: Clock,
-                        value: `${anonRemaining} de ${anonymousLimit}`,
-                        label: 'Créditos',
-                        gradient: 'gradient-warning'
-                    },
-                    {
-                        icon: CheckCircle,
-                        value: `${anonData.success_rate}%`,
-                        label: 'Tasa de Éxito',
-                        trend: { value: anonData.success_rate, isPositive: anonData.success_rate >= 80 },
-                        gradient: 'gradient-success'
-                    },
-                    {
-                        icon: Zap,
-                        value: anonData.avg_processing_time,
-                        label: 'Tiempo Promedio',
-                        gradient: 'gradient-info'
-                    }
-                ]);
-                setChartData({
-                    successRate: anonData.success_rate,
-                    creditsRemaining: anonRemaining,
-                    creditsTotal: anonymousLimit,
-                    creditsUnlimited: false
-                });
-            } catch {
-                // ...
-            }
-            return;
-        }
-        try {
-            // REFRESH USER PROFILE TO GET PREMIUM STATUS
-            const updatedUser = await apiService.getCurrentUser();
-            useAppStore.getState().setUser(updatedUser);
-
-            const data = await apiService.getUserStats();
-            const isPremium = data.credits.is_premium || updatedUser.is_premium || updatedUser.is_superuser;
-            const planId = updatedUser.premium_plan_id || data.user.premium_plan_id;
-            const isUnlimited = updatedUser.is_superuser || (isPremium && planId !== 'Básico');
-
-            const creditsDisplay = isUnlimited
-                ? '∞'
-                : `${data.credits.remaining} de ${data.credits.limit}`;
-
-            setStats([
-                {
-                    icon: BarChart3,
-                    value: data.conversions.total,
-                    label: 'Conversiones Totales',
-                    trend: {
-                        value: data.conversions.completed,
-                        isPositive: true
-                    },
-                    gradient: 'gradient-primary'
-                },
-                {
-                    icon: Clock,
-                    value: creditsDisplay,
-                    label: 'Créditos',
-                    gradient: 'gradient-warning'
-                },
-                {
-                    icon: CheckCircle,
-                    value: `${data.success_rate}%`,
-                    label: 'Tasa de Éxito',
-                    trend: {
-                        value: data.success_rate,
-                        isPositive: data.success_rate >= 80
-                    },
-                    gradient: 'gradient-success'
-                },
-                {
-                    icon: Zap,
-                    value: data.avg_processing_time,
-                    label: 'Tiempo Promedio',
-                    trend: {
-                        value: 0,
-                        isPositive: true
-                    },
-                    gradient: 'gradient-info'
-                }
-            ]);
-            setChartData({
-                successRate: data.success_rate,
-                creditsRemaining: data.credits.remaining,
-                creditsTotal: data.credits.limit,
-                creditsUnlimited: isUnlimited
-            });
-        } catch (error) {
-            console.error('Failed to load stats:', error);
-            setChartData((prev) => ({ ...prev, successRate: null }));
-        }
-    };
 
     const conversionTypes = useMemo(() => getDashboardConversions(), []);
     const { query: searchQuery, setQuery: setSearchQuery } = useDashboardSearch();
@@ -228,17 +74,8 @@ export const Dashboard = () => {
 
     return (
         <div className="dashboard-page">
-            <section
-                className="dashboard-metrics dashboard-metrics--compact"
-                aria-labelledby="metrics-heading"
-                role="region"
-            >
-                <div className="dashboard-metrics__header">
-                    <h2 id="metrics-heading" className="dashboard-metrics__title">
-                        Tu resumen
-                    </h2>
-                </div>
-                <MetricsSummary stats={stats} chartData={chartData} />
+            <section className="dashboard-value-banner" aria-label="Descubre DocAI Platform">
+                <ValueBanner />
             </section>
 
             <section className="dashboard-search-section">

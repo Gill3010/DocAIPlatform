@@ -8,6 +8,7 @@ interface AppState {
     token: string | null;
     theme: Theme;
     sidebarCollapsed: boolean;
+    isMetricsModalOpen: boolean;
 
     setUser: (user: User | null) => void;
     setToken: (token: string | null) => void;
@@ -15,6 +16,8 @@ interface AppState {
     toggleTheme: () => void;
     toggleSidebar: () => void;
     logout: () => void;
+    openMetricsModal: () => void;
+    closeMetricsModal: () => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -24,6 +27,7 @@ export const useAppStore = create<AppState>()(
             token: null,
             theme: 'light',
             sidebarCollapsed: false,
+            isMetricsModalOpen: false,
 
             setUser: (user) => set({ user }),
             setToken: (token) => set({ token }),
@@ -41,6 +45,8 @@ export const useAppStore = create<AppState>()(
                 removeToken();
                 set({ user: null, token: null });
             },
+            openMetricsModal: () => set({ isMetricsModalOpen: true }),
+            closeMetricsModal: () => set({ isMetricsModalOpen: false }),
         }),
         {
             name: 'saas-app-storage',

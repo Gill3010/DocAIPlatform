@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, RefreshCw, FileEdit, FileText, FolderClock, ChevronLeft, ChevronRight, User as UserIcon, LogOut, ChevronUp } from 'lucide-react';
+import { LayoutDashboard, RefreshCw, FileEdit, FileText, FolderClock, ChevronLeft, ChevronRight, User as UserIcon, LogOut, ChevronUp, BarChart3 } from 'lucide-react';
 import { useAppStore } from '../../stores/appStore';
 import { getAvatarUrl } from '../../services/api';
 import { useState, useRef, useEffect } from 'react';
@@ -11,7 +11,7 @@ const TOOLTIP_OFFSET = 12;
 export const Sidebar = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const { sidebarCollapsed, toggleSidebar, user, logout } = useAppStore();
+    const { sidebarCollapsed, toggleSidebar, user, logout, openMetricsModal } = useAppStore();
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const [tooltip, setTooltip] = useState<{ text: string; top: number; left: number } | null>(null);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -196,6 +196,17 @@ export const Sidebar = () => {
                                 >
                                     <UserIcon size={16} />
                                     <span>Editar Perfil</span>
+                                </button>
+                                <button
+                                    className="user-menu-item"
+                                    onClick={() => {
+                                        setUserMenuOpen(false);
+                                        handleMenuItemClick();
+                                        openMetricsModal();
+                                    }}
+                                >
+                                    <BarChart3 size={16} />
+                                    <span>Métricas</span>
                                 </button>
                                 <button
                                     className="user-menu-item logout"

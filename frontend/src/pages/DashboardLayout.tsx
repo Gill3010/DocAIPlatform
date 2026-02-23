@@ -6,6 +6,7 @@ import { SettingsMenu } from '../components/SettingsMenu/SettingsMenu';
 import { MoreMenu } from '../components/MoreMenu/MoreMenu';
 import { AIAssistantTrigger } from '../components/AIAssistantTrigger/AIAssistantTrigger';
 import { AIAssistantFAB } from '../components/AIAssistantFAB/AIAssistantFAB';
+import { MetricsModal } from '../components/MetricsModal/MetricsModal';
 import { Footer } from '../components/Footer/Footer';
 import { useAppStore } from '../stores/appStore';
 import { apiService } from '../services/api';
@@ -14,11 +15,25 @@ import { AssistantProvider } from '../contexts/AssistantContext';
 import './DashboardLayout.css';
 
 export const DashboardLayout = () => {
-    const { sidebarCollapsed, toggleSidebar, user, token, setUser } = useAppStore();
+    const { sidebarCollapsed, toggleSidebar, user, token, setUser, isMetricsModalOpen } = useAppStore();
 
     const [searchQuery, setSearchQuery] = useState('');
     const [openHeaderMenu, setOpenHeaderMenu] = useState<'settings' | 'more' | null>(null);
-    const [isAssistantOpen, setIsAssistantOpen] = useState(false);
+    const [isAssistantOpen, setIsAssistantOpen] = useState(() => {
+        try {
+            return typeof window !== 'undefined' && localStorage.getItem('docai-assistant-open') === 'true';
+        } catch {
+            return false;
+        }
+    });
+
+    useEffect(() => {
+        try {
+            localStorage.setItem('docai-assistant-open', String(isAssistantOpen));
+        } catch {
+            /* ignore */
+        }
+    }, [isAssistantOpen]);
 
     useEffect(() => {
         // If we have a token but no user data, fetch profile (incl. is_superuser, can_access_admin_panel)
@@ -114,6 +129,7 @@ export const DashboardLayout = () => {
                 </div>
             </main>
             <AIAssistantFAB isOpen={isAssistantOpen} onOpenChange={setIsAssistantOpen} />
+            {isMetricsModalOpen && <MetricsModal />}
         </div>
         </AssistantProvider>
     );

@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     GROBID_URL: str = ""                    # URL de GROBID (ej. http://localhost:8070)
     USE_BEDROCK_FOR_JATS: bool = False      # True = intentar Bedrock primero; fallback a local si falla
     BEDROCK_REGION: str = "us-east-1"       # Región para Bedrock (Claude; distinta de ECS si aplica)
-    BEDROCK_MODEL_ID: str = "anthropic.claude-sonnet-4-20250514-v1:0"  # Claude Sonnet 4 (disponible en us-east-2)
+    BEDROCK_MODEL_ID: str = "us.anthropic.claude-sonnet-4-20250514-v1:0"  # Inference profile (Claude Sonnet 4)
 
     # ECS Fargate converter (nuevo sistema)
     USE_ECS_CONVERTER: bool = True  # True = usar ECS; False = convertir local

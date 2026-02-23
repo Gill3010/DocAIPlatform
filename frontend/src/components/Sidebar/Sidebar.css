@@ -2,7 +2,7 @@
     position: fixed;
     left: 0;
     top: var(--header-height);
-    bottom: var(--footer-height);
+    bottom: calc(var(--footer-height) + env(safe-area-inset-bottom, 0px));
     width: var(--sidebar-width);
     background: var(--color-surface);
     border-right: 1px solid var(--color-border);
