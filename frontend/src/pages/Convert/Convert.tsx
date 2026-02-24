@@ -174,9 +174,10 @@ export const Convert = () => {
                                 <div className="progress-section">
                                     <div className="progress-status">
                                         <span>
-                                            {selectedFile.status === 'uploading' ? 'Subiendo...' :
-                                                selectedFile.status === 'converting' ? 'Procesando...' :
-                                                    '¡Completado!'}
+                                            {selectedFile.status === 'uploading' && 'Subiendo...'}
+                                            {selectedFile.status === 'converting' && 'Procesando...'}
+                                            {selectedFile.status === 'completed' && '¡Completado!'}
+                                            {selectedFile.status === 'error' && 'Error'}
                                         </span>
                                         <span>{selectedFile.progress}%</span>
                                     </div>

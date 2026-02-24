@@ -9,6 +9,9 @@ interface AppState {
     theme: Theme;
     sidebarCollapsed: boolean;
     isMetricsModalOpen: boolean;
+    isLoginOverlayOpen: boolean;
+    loginOverlayFrom: string;
+    loginOverlayInitialMode: 'login' | 'register';
 
     setUser: (user: User | null) => void;
     setToken: (token: string | null) => void;
@@ -18,6 +21,8 @@ interface AppState {
     logout: () => void;
     openMetricsModal: () => void;
     closeMetricsModal: () => void;
+    openLoginOverlay: (from: string, initialMode?: 'login' | 'register') => void;
+    closeLoginOverlay: () => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -28,6 +33,9 @@ export const useAppStore = create<AppState>()(
             theme: 'light',
             sidebarCollapsed: false,
             isMetricsModalOpen: false,
+            isLoginOverlayOpen: false,
+            loginOverlayFrom: '/dashboard',
+            loginOverlayInitialMode: 'login',
 
             setUser: (user) => set({ user }),
             setToken: (token) => set({ token }),
@@ -47,6 +55,9 @@ export const useAppStore = create<AppState>()(
             },
             openMetricsModal: () => set({ isMetricsModalOpen: true }),
             closeMetricsModal: () => set({ isMetricsModalOpen: false }),
+            openLoginOverlay: (from, initialMode = 'login') =>
+                set({ isLoginOverlayOpen: true, loginOverlayFrom: from, loginOverlayInitialMode: initialMode }),
+            closeLoginOverlay: () => set({ isLoginOverlayOpen: false }),
         }),
         {
             name: 'saas-app-storage',

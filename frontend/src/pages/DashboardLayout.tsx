@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Outlet, Link } from 'react-router-dom';
+import { Outlet, Link, useLocation } from 'react-router-dom';
 import { Menu, UserPlus } from 'lucide-react';
 import { Sidebar } from '../components/Sidebar/Sidebar';
 import { SettingsMenu } from '../components/SettingsMenu/SettingsMenu';
@@ -7,6 +7,7 @@ import { MoreMenu } from '../components/MoreMenu/MoreMenu';
 import { AIAssistantTrigger } from '../components/AIAssistantTrigger/AIAssistantTrigger';
 import { AIAssistantFAB } from '../components/AIAssistantFAB/AIAssistantFAB';
 import { MetricsModal } from '../components/MetricsModal/MetricsModal';
+import { LoginOverlay } from '../components/LoginOverlay/LoginOverlay';
 import { Footer } from '../components/Footer/Footer';
 import { useAppStore } from '../stores/appStore';
 import { apiService } from '../services/api';
@@ -15,7 +16,8 @@ import { AssistantProvider } from '../contexts/AssistantContext';
 import './DashboardLayout.css';
 
 export const DashboardLayout = () => {
-    const { sidebarCollapsed, toggleSidebar, user, token, setUser, isMetricsModalOpen } = useAppStore();
+    const location = useLocation();
+    const { sidebarCollapsed, toggleSidebar, user, token, setUser, isMetricsModalOpen, isLoginOverlayOpen, loginOverlayFrom, loginOverlayInitialMode, openLoginOverlay, closeLoginOverlay } = useAppStore();
 
     const [searchQuery, setSearchQuery] = useState('');
     const [openHeaderMenu, setOpenHeaderMenu] = useState<'settings' | 'more' | null>(null);
@@ -77,15 +79,15 @@ export const DashboardLayout = () => {
                         </div>
                         <div className="header-right">
                             {isAnonymous ? (
-                                <Link
-                                    to="/login"
-                                    state={{ mode: 'register' }}
+                                <button
+                                    type="button"
                                     className="header-register-btn"
-                                    aria-label="Ir a registro"
+                                    aria-label="Registrarse"
+                                    onClick={() => openLoginOverlay(location.pathname, 'register')}
                                 >
                                     <UserPlus size={20} strokeWidth={2} />
                                     <span className="header-register-btn__label">Regístrate</span>
-                                </Link>
+                                </button>
                             ) : (
                                 <AIAssistantTrigger
                                     onClick={() => setIsAssistantOpen((v) => !v)}
@@ -130,6 +132,14 @@ export const DashboardLayout = () => {
             </main>
             <AIAssistantFAB isOpen={isAssistantOpen} onOpenChange={setIsAssistantOpen} />
             {isMetricsModalOpen && <MetricsModal />}
+            {isLoginOverlayOpen && (
+                <LoginOverlay
+                    from={loginOverlayFrom}
+                    initialMode={loginOverlayInitialMode}
+                    onClose={closeLoginOverlay}
+                    onSuccess={closeLoginOverlay}
+                />
+            )}
         </div>
         </AssistantProvider>
     );

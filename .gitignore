@@ -72,3 +72,4 @@ backend/static/uploads/
 
 # Archivos residuales de comandos (ej. pip)
 =*
+.config/

@@ -40,7 +40,6 @@ function getSlideImagePath(index: number): string {
 export function ValueBanner() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
-    const [opacityFade, setOpacityFade] = useState(1);
     const { openMetricsModal } = useAppStore();
 
     const slides = DEFAULT_SLIDES.map((slide, i) => ({
@@ -51,15 +50,6 @@ export function ValueBanner() {
     const goTo = useCallback((index: number) => {
         setCurrentIndex((prev) => (index + slides.length) % slides.length);
     }, [slides.length]);
-
-    /* Ligera fusión de opacidad al cambiar de slide */
-    useEffect(() => {
-        const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        if (prefersReduced) return;
-        setOpacityFade(0.88);
-        const id = setTimeout(() => setOpacityFade(1), 180);
-        return () => clearTimeout(id);
-    }, [currentIndex]);
 
     useEffect(() => {
         if (isPaused) return;
@@ -81,14 +71,7 @@ export function ValueBanner() {
             onFocus={() => setIsPaused(true)}
             onBlur={() => setIsPaused(false)}
         >
-            <div
-                className="value-banner__track"
-                style={{
-                    transform: `translateX(-${currentIndex * 25}%)`,
-                    opacity: opacityFade,
-                    transition: 'transform 0.4s ease-in-out, opacity 0.2s ease-out',
-                }}
-            >
+            <div className="value-banner__track">
                 {slides.map((slide, index) => {
                     const bgStyle = slide.image && slide.gradient
                         ? {
@@ -98,7 +81,11 @@ export function ValueBanner() {
                           }
                         : { background: slide.gradient };
                     return (
-                    <div key={index} className="value-banner__slide" style={bgStyle}>
+                    <div
+                        key={index}
+                        className={`value-banner__slide ${index === currentIndex ? 'value-banner__slide--active' : ''}`}
+                        style={bgStyle}
+                    >
                         <div className="value-banner__overlay" />
                         <div className="value-banner__content">
                             <p className="value-banner__title">{slide.title}</p>

@@ -18,6 +18,7 @@
 ### 2.1 Conversiones de documentos
 - PDF ↔ Word, PDF ↔ Excel, PDF ↔ PowerPoint, Excel/PPTX → PDF
 - PDF/TXT/Word ↔ TXT (con placeholders `[Imagen]`)
+- **Word/Excel/PowerPoint → PDF:** LibreOffice 26.2 instalado en el host (headless). Fallback: Docker document-converter o ReportLab. LibreOffice se instaló desde RPMs oficiales (ver §5.1).
 - Word → XML (JATS), XML ↔ HTML ↔ Word
 
 ### 2.2 Sección “Imágenes y CAD” (18 cards explícitas)
@@ -38,9 +39,11 @@
 - Preprocesado en `converter.py` si `USE_OCR_FOR_SCANNED_PDF=true`
 - Dependencias: Tesseract, Ghostscript, ocrmypdf (instaladas)
 
-### 2.5 Fallback Camelot en PDF→Excel
-- `USE_CAMELOT_FALLBACK=true` en config
-- camelot-py para tablas complejas
+### 2.5 PDF→Excel (Fase 3 afinado)
+- **pdfplumber:** Tres estrategias (text, lines, lines_tuned) y selección por calidad
+- **camelot:** lattice y stream; se elige el mejor resultado según heurística
+- **img2table:** Fallback para PDFs escaneados (Tesseract)
+- Ver `docs/FASE3-EXPLORACION-APACHE-POI.md` para conclusión sobre Apache POI (no viable)
 
 ### 2.6 Word-to-JATS Ensemble (nuevo)
 - Plataforma de conversión docx→xml de alta precisión para OJS
@@ -61,7 +64,10 @@
 
 | Ruta | Cambios principales |
 |------|---------------------|
-| `backend/app/utils/converters/office_converters.py` | PDF→Excel: extract_text, posicionamiento de imágenes, celdas combinadas |
+| `backend/app/utils/converters/pdf_docx_converters.py` | Docx→PDF: fallback Docker; PDF→Docx: fallback PyMuPDF (mejor extracción) |
+| `backend/app/utils/converters/office_converters.py` | PDF→Excel Fase 3: pdfplumber multi-estrategia; Camelot lattice+stream; img2table; _tables_quality_score |
+| `backend/app/utils/converters/text_converters.py` | DOCX→TXT: docx2python (headers, footers, footnotes) como primario |
+| `backend/app/core/config.py` | USE_IMG2TABLE_FALLBACK para PDF→Excel |
 | `backend/app/utils/converters/image_converters.py` | PDF→PNG/JPG/JPEG (PyMuPDF) |
 | `backend/app/utils/converters/cad_converters.py` | DXF→PNG/JPG/JPEG, DWGToImageConverter, ImageToDWGConverter (ODA o LibreDWG) |
 | `backend/app/utils/converters/__init__.py` | Registro de DWGToImageConverter, ImageToDWGConverter |
@@ -115,6 +121,26 @@
 
 ## 5. Verificaciones rápidas en la nueva instancia
 
+### 5.1 LibreOffice (conversiones Office → PDF)
+
+**Estado actual:** LibreOffice 26.2 instalado en el host (Amazon Linux 2023, aarch64). Comandos `libreoffice` y `soffice` disponibles en `/usr/bin/`.
+
+**Si necesitas reinstalar en una nueva instancia:**
+
+```bash
+cd /tmp
+curl -L -o LO_rpm.tar.gz "https://download.documentfoundation.org/libreoffice/stable/26.2.0/rpm/aarch64/LibreOffice_26.2.0_Linux_aarch64_rpm.tar.gz"
+tar -xzf LO_rpm.tar.gz
+sudo dnf install -y libXinerama libX11-xcb
+cd LibreOffice_*_Linux_aarch64_rpm/RPMS
+sudo dnf localinstall -y *.rpm
+sudo ln -sf /usr/bin/libreoffice26.2 /usr/bin/libreoffice 2>/dev/null || true
+sudo ln -sf /usr/bin/libreoffice26.2 /usr/bin/soffice 2>/dev/null || true
+libreoffice --headless --version   # Verificar
+```
+
+### 5.2 Comandos de verificación
+
 ```bash
 # Memoria
 free -h
@@ -122,6 +148,10 @@ free -h
 # Servicios
 pm2 list
 curl -s http://127.0.0.1:8000/health
+
+# LibreOffice (conversiones Office→PDF)
+which libreoffice soffice
+libreoffice --headless --version
 
 # LibreDWG (tras instalación)
 which dwg2dxf dxf2dwg
@@ -136,7 +166,7 @@ dwg2dxf --help
 2. Instalar LibreDWG (`dwg2dxf`, `dxf2dwg`) con `make -j2`.
 3. Actualizar `DWGToImageConverter` e `ImageToDWGConverter` para usar LibreDWG como fallback cuando ODA no esté disponible.
 4. Probar conversiones DWG desde docaiplatform.com.
-5. (Opcional) Seguir afinando PDF→Excel.
+5. PDF→Excel ya afinado (Fase 3: pdfplumber multi-estrategia, Camelot lattice+stream). Ver `docs/FASE3-EXPLORACION-APACHE-POI.md`.
 
 ---
 

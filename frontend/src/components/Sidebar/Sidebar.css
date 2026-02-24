@@ -148,6 +148,16 @@
     white-space: nowrap;
 }
 
+/* Reset para botón usado como nav-item (ej. Iniciar sesión) */
+button.nav-item {
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font: inherit;
+}
+
 .nav-item:hover {
     background: var(--color-surface-hover);
     color: var(--color-text-primary);

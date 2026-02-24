@@ -1,9 +1,12 @@
 """
 PDF ↔ DOCX Conversion Converters
 Uses pdf2docx for PDF->DOCX (preserves tables and images).
-Docx->PDF: tries LibreOffice first, then ReportLab with tables.
+Docx->PDF: LibreOffice (host o Docker) primero, luego ReportLab con tablas.
 """
 from pypdf import PdfReader
+
+# Docker se importa solo cuando LibreOffice no está en el host
+docker = None
 from docx import Document
 from docx.document import Document as _Document
 from docx.oxml.ns import qn
@@ -40,14 +43,43 @@ def _pdf_to_docx_pdf2docx(input_path: str, output_path: str) -> bool:
 
 
 def _pdf_to_docx_fallback(input_path: str, output_path: str) -> bool:
-    """Fallback: pypdf + python-docx (text only, no tables/images)."""
-    reader = PdfReader(input_path)
-    if len(reader.pages) == 0:
-        raise ConversionError("PDF has no pages")
+    """Fallback: PyMuPDF (mejor extracción) o pypdf + python-docx (text only, no tables/images)."""
     doc = Document()
     style = doc.styles['Normal']
     style.font.name = 'Arial'
     style.font.size = Pt(11)
+
+    # Prefer PyMuPDF for better layout-aware text extraction
+    try:
+        import fitz
+        with fitz.open(input_path) as pdf_doc:
+            if len(pdf_doc) == 0:
+                raise ConversionError("PDF has no pages")
+            for page_num in range(len(pdf_doc)):
+                page = pdf_doc[page_num]
+                blocks = page.get_text("blocks", sort=True)
+                text_parts = []
+                for b in blocks:
+                    if len(b) >= 5 and b[4]:
+                        text_parts.append(b[4].strip())
+                text = '\n\n'.join(p for p in text_parts if p)
+                if text:
+                    if len(pdf_doc) > 1:
+                        doc.add_heading(f'Página {page_num + 1}', level=2)
+                    for para_text in text.split('\n\n'):
+                        if para_text.strip():
+                            doc.add_paragraph(para_text.strip())
+                    if page_num < len(pdf_doc) - 1:
+                        doc.add_page_break()
+        doc.save(output_path)
+        return True
+    except ImportError:
+        pass
+
+    # Fallback to pypdf
+    reader = PdfReader(input_path)
+    if len(reader.pages) == 0:
+        raise ConversionError("PDF has no pages")
     for page_num, page in enumerate(reader.pages, 1):
         text = page.extract_text()
         if text and text.strip():
@@ -117,8 +149,56 @@ def _iter_block_items(parent) -> Iterator:
             yield DocxTable(child, parent)
 
 
+def _docx_to_pdf_docker(input_path: str, output_path: str, base_name: str) -> bool:
+    """Usa contenedor Docker document-converter para DOCX→PDF cuando LibreOffice no está en el host."""
+    global docker
+    if docker is None:
+        try:
+            import docker as docker_module
+            docker = docker_module
+        except ImportError:
+            return False
+    try:
+        client = docker.from_env()
+    except Exception:
+        return False
+    images = client.images.list(name="document-converter")
+    if not images:
+        images = client.images.list(name="766092484543.dkr.ecr.us-east-2.amazonaws.com/document-converter")
+    if not images:
+        return False
+    image = images[0]
+    input_dir = os.path.dirname(input_path)
+    output_dir = os.path.dirname(output_path)
+    input_file = os.path.basename(input_path)
+    try:
+        client.containers.run(
+            image.id,
+            command=[
+                "libreoffice",
+                "--headless",
+                "--convert-to", "pdf",
+                "--outdir", "/tmp/output",
+                f"/tmp/input/{input_file}",
+            ],
+            volumes={
+                input_dir: {"bind": "/tmp/input", "mode": "ro"},
+                output_dir: {"bind": "/tmp/output", "mode": "rw"},
+            },
+            remove=True,
+        )
+        expected = os.path.join(output_dir, f"{base_name}.pdf")
+        if os.path.exists(expected):
+            if expected != output_path:
+                shutil.move(expected, output_path)
+            return True
+    except Exception:
+        pass
+    return False
+
+
 class DocxToPDFConverter(BaseConverter):
-    """Convert DOCX to PDF - LibreOffice when available, else ReportLab with tables."""
+    """Convert DOCX to PDF - LibreOffice (host o Docker), luego ReportLab con tablas."""
 
     @property
     def prefers_local(self) -> bool:
@@ -135,7 +215,12 @@ class DocxToPDFConverter(BaseConverter):
 
     def convert(self, input_path: str, output_path: str) -> bool:
         self.ensure_directory(output_path)
+        input_path = os.path.abspath(input_path)
+        output_path = os.path.abspath(output_path)
+        base_name = Path(input_path).stem
         if _docx_to_pdf_libreoffice(input_path, output_path):
+            return True
+        if _docx_to_pdf_docker(input_path, output_path, base_name):
             return True
         return self._convert_with_reportlab(input_path, output_path)
     

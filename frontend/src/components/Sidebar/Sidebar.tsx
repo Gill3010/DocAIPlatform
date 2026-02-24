@@ -11,7 +11,7 @@ const TOOLTIP_OFFSET = 12;
 export const Sidebar = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const { sidebarCollapsed, toggleSidebar, user, logout, openMetricsModal } = useAppStore();
+    const { sidebarCollapsed, toggleSidebar, user, logout, openMetricsModal, openLoginOverlay } = useAppStore();
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const [tooltip, setTooltip] = useState<{ text: string; top: number; left: number } | null>(null);
     const menuRef = useRef<HTMLDivElement>(null);
@@ -122,16 +122,19 @@ export const Sidebar = () => {
 
                 {!user && (
                     <div className="sidebar-footer sidebar-footer--guest">
-                        <Link
-                            to="/login"
+                        <button
+                            type="button"
                             className="nav-item nav-item--login"
                             onMouseEnter={(e) => showTooltip(e.currentTarget, 'Iniciar sesión')}
                             onMouseLeave={hideTooltip}
-                            onClick={handleMenuItemClick}
+                            onClick={() => {
+                                handleMenuItemClick();
+                                openLoginOverlay(location.pathname, 'login');
+                            }}
                         >
                             <UserIcon className="nav-icon" size={20} />
                             {!sidebarCollapsed && <span className="nav-label">Iniciar sesión</span>}
-                        </Link>
+                        </button>
                     </div>
                 )}
                 {user && (

@@ -252,6 +252,28 @@ def _looks_like_fragmented_table(tables) -> bool:
     return avg_len < 15 or (two_col >= len(rows) * 0.3 and avg_len < 20) or (one_col >= 5 and avg_len < 12)
 
 
+def _tables_quality_score(tables) -> float:
+    """Score para comparar calidad de extracciones: más celdas, menos fragmentación = mejor."""
+    if not tables:
+        return 0.0
+    total_cells = 0
+    total_chars = 0
+    num_cols = 0
+    for t in tables:
+        for r in (t or []):
+            cells = [c for c in (r or []) if c and str(c).strip()]
+            total_cells += len(cells)
+            for c in cells:
+                total_chars += len(str(c).strip())
+            if cells:
+                num_cols = max(num_cols, len(cells))
+    if total_cells == 0:
+        return 0.0
+    avg_len = total_chars / total_cells
+    # Penalizar fragmentación (celdas muy cortas) y preferir estructura tabular
+    return total_cells * (0.5 + min(1.0, avg_len / 20)) * (1 + 0.2 * min(num_cols, 5))
+
+
 def _extract_text_rows_by_layout(page) -> List[List]:
     """Extrae filas preservando líneas completas (evita fragmentación UNIVE|RSIDAD)."""
     text = page.extract_text()
@@ -317,17 +339,26 @@ class PDFToExcelConverter(BaseConverter):
             wb.remove(wb.active)
             use_camelot = getattr(settings, 'USE_CAMELOT_FALLBACK', False)
 
+            # Fase 3: Múltiples estrategias pdfplumber para optimizar detección de tablas
+            table_settings_text = {
+                "vertical_strategy": "text",
+                "horizontal_strategy": "text",
+                "min_words_vertical": 2,
+                "min_words_horizontal": 1,
+            }
             table_settings_lines = {
                 "vertical_strategy": "lines",
                 "horizontal_strategy": "lines",
                 "snap_tolerance": 4,
                 "join_tolerance": 4,
             }
-            table_settings_text = {
-                "vertical_strategy": "text",
-                "horizontal_strategy": "text",
-                "min_words_vertical": 2,
-                "min_words_horizontal": 1,
+            table_settings_lines_tuned = {
+                "vertical_strategy": "lines",
+                "horizontal_strategy": "lines",
+                "snap_tolerance": 5,
+                "join_tolerance": 5,
+                "snap_x_tolerance": 5,
+                "snap_y_tolerance": 2,
             }
 
             ROW_HEIGHT_PT = 15
@@ -338,20 +369,51 @@ class PDFToExcelConverter(BaseConverter):
                 with fitz.open(input_path) as doc:
                     for page_num, page in enumerate(pdf.pages, 1):
                         text_lines = page.extract_text()
-                        tables = page.extract_tables(table_settings=table_settings_text)
-                        if not tables:
-                            tables = page.extract_tables(table_settings=table_settings_lines)
+                        tables = None
+                        best_score = -1.0
+                        for settings in (table_settings_text, table_settings_lines, table_settings_lines_tuned):
+                            try:
+                                cand = page.extract_tables(table_settings=settings)
+                                if cand:
+                                    score = _tables_quality_score(cand)
+                                    if score > best_score:
+                                        best_score = score
+                                        tables = cand
+                            except Exception:
+                                pass
                         if not tables:
                             if text_lines:
                                 tables = [[line.strip()] for line in text_lines.splitlines() if line.strip()]
                                 tables = [tables] if tables else []
 
                         if use_camelot and _is_tables_poor_quality(tables):
+                            camelot_best = tables
+                            camelot_best_score = _tables_quality_score(tables)
+                            for flavor in ("lattice", "stream"):
+                                try:
+                                    import camelot
+                                    ct = camelot.read_pdf(input_path, pages=str(page_num), flavor=flavor)
+                                    if ct and len(ct) > 0:
+                                        cand_tables = [t.df.values.tolist() for t in ct]
+                                        score = _tables_quality_score(cand_tables)
+                                        if score > camelot_best_score:
+                                            camelot_best_score = score
+                                            camelot_best = cand_tables
+                                except Exception:
+                                    pass
+                            tables = camelot_best
+
+                        use_img2table = getattr(settings, 'USE_IMG2TABLE_FALLBACK', False)
+                        if use_img2table and _is_tables_poor_quality(tables):
                             try:
-                                import camelot
-                                ct = camelot.read_pdf(input_path, pages=str(page_num), flavor='stream')
-                                if ct and len(ct) > 0:
-                                    tables = [t.df.values.tolist() for t in ct]
+                                from img2table.document import PDF
+                                from img2table.ocr import TesseractOCR
+                                pdf_img2t = PDF(input_path, pages=[page_num - 1], pdf_text_extraction=True)
+                                ocr = TesseractOCR(lang="eng+spa") if text_lines and len((text_lines or "").strip()) < 50 else None
+                                extracted = pdf_img2t.extract_tables(ocr=ocr)
+                                page_tables = extracted.get(page_num - 1, [])
+                                if page_tables:
+                                    tables = [t.df.values.tolist() for t in page_tables if hasattr(t, 'df') and t.df is not None]
                             except Exception:
                                 pass
 

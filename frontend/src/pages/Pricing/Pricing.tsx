@@ -4,7 +4,6 @@ import { Tag } from 'lucide-react';
 import { PaymentModal } from '../../components/Payment/PaymentModal';
 import { useAppStore } from '../../stores/appStore';
 import { apiService } from '../../services/api';
-import { getToken } from '../../services/storageService';
 import { setCheckoutIntent, getCheckoutIntent, removeCheckoutIntent } from '../../services/storageService';
 import './Pricing.css';
 
@@ -50,6 +49,7 @@ const PLANS = [
 export const Pricing = () => {
     const location = useLocation();
     const navigate = useNavigate();
+    const { token, openLoginOverlay } = useAppStore();
     const highlightPlanId = (location.state as { highlightPlan?: string } | null)?.highlightPlan;
     const fromModal = (location.state as { fromModal?: boolean } | null)?.fromModal;
     const recommendedCardRef = useRef<HTMLElement>(null);
@@ -67,10 +67,9 @@ export const Pricing = () => {
         }
     }, [fromModal, highlightPlanId]);
 
-    // Tras login/registro: abrir modal de pago si hay intención pendiente
+    // Tras login/registro: abrir modal de pago si hay intención pendiente (funciona tanto con overlay como con navegación)
     useEffect(() => {
         const intent = getCheckoutIntent();
-        const token = getToken();
         if (intent && token) {
             removeCheckoutIntent();
             setSelectedPlan({
@@ -80,11 +79,10 @@ export const Pricing = () => {
                 currency: intent.currency,
             });
         }
-    }, []);
+    }, [token]);
 
     const handleSelectPlan = (plan: typeof PLANS[0]) => {
         if (plan.price > 0) {
-            const token = getToken();
             if (!token) {
                 setCheckoutIntent({
                     planId: plan.id,
@@ -92,7 +90,7 @@ export const Pricing = () => {
                     planPrice: plan.price,
                     currency: plan.currency,
                 });
-                navigate('/login', { state: { returnTo: '/pricing', checkoutPlan: plan.id }, replace: false });
+                openLoginOverlay('/pricing', 'register');
                 return;
             }
             setSelectedPlan(plan);

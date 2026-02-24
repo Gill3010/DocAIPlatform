@@ -59,6 +59,8 @@ export interface LoginFormProps {
     onModeChange?: (isLogin: boolean) => void;
     /** Show "Ir al Dashboard" link in register mode (full page only, not overlay) */
     showBackToDashboard?: boolean;
+    /** When provided, "¿Olvidaste tu contraseña?" uses this callback instead of navigating to /auth/forgot-password */
+    onForgotPasswordClick?: () => void;
 }
 
 export const LoginForm = ({
@@ -69,6 +71,7 @@ export const LoginForm = ({
     idPrefix = 'login',
     onModeChange,
     showBackToDashboard = false,
+    onForgotPasswordClick,
 }: LoginFormProps) => {
     const navigate = useNavigate();
     const { setToken, setUser } = useAppStore();
@@ -499,9 +502,15 @@ export const LoginForm = ({
             <div className="login-footer">
                 {isLogin && (
                     <p className="login-footer-forgot">
-                        <Link to="/auth/forgot-password" className="link-button">
-                            ¿Olvidaste tu contraseña?
-                        </Link>
+                        {onForgotPasswordClick ? (
+                            <button type="button" className="link-button" onClick={onForgotPasswordClick}>
+                                ¿Olvidaste tu contraseña?
+                            </button>
+                        ) : (
+                            <Link to="/auth/forgot-password" className="link-button">
+                                ¿Olvidaste tu contraseña?
+                            </Link>
+                        )}
                     </p>
                 )}
                 <p>

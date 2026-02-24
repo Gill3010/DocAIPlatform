@@ -29,6 +29,7 @@ class Settings(BaseSettings):
     # Mejoras de conversión (sin costo)
     USE_OCR_FOR_SCANNED_PDF: bool = True   # OCR para PDF escaneados
     USE_CAMELOT_FALLBACK: bool = True      # Fallback camelot en PDF→Excel
+    USE_IMG2TABLE_FALLBACK: bool = True    # Fallback img2table en PDF→Excel (tablas en PDFs escaneados)
 
     # Word-to-JATS Ensemble (conversión avanzada docx→xml para OJS)
     USE_JATS_ENSEMBLE: bool = False        # True = usar flujo docx→xml (Bedrock o local)

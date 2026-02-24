@@ -158,10 +158,11 @@ def _zip_xml_and_images(output_path: Path) -> Optional[bytes]:
     },
 )
 async def upload_and_convert(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     target_format: str = "pdf",
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
     """
     Upload and convert a document
@@ -208,6 +209,7 @@ async def upload_and_convert(
             upload_dir=UPLOAD_DIR,
             converted_dir=CONVERTED_DIR,
             db=db,
+            background_tasks=background_tasks,
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
@@ -244,6 +246,7 @@ async def upload_and_convert(
     },
 )
 async def upload_and_convert_anonymous(
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     target_format: str = "pdf",
     x_anonymous_session_id: str = Header(..., alias="X-Anonymous-Session-Id"),
@@ -306,6 +309,7 @@ async def upload_and_convert_anonymous(
             upload_dir=UPLOAD_DIR,
             converted_dir=CONVERTED_DIR,
             db=db,
+            background_tasks=background_tasks,
         )
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))

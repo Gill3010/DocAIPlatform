@@ -65,7 +65,13 @@ export function useConversion(options: UseConversionOptions) {
                 if (isAnonymous && response.credits_remaining !== undefined) {
                     syncFromCreditsRemaining(response.credits_remaining);
                 }
-                if (!isAnonymous && user && response.credits_remaining !== undefined && !isAdminUnlimited) {
+                if (
+                    response.status === 'completed' &&
+                    !isAnonymous &&
+                    user &&
+                    response.credits_remaining !== undefined &&
+                    !isAdminUnlimited
+                ) {
                     if (user.premium_plan_id === 'Básico') {
                         const used = 50 - response.credits_remaining;
                         setUser({ ...user, monthly_conversion_count: used });
@@ -88,16 +94,78 @@ export function useConversion(options: UseConversionOptions) {
                         : null
                 );
 
-                // Simular progreso mientras espera (conversión síncrona)
-                const convertInterval = setInterval(() => {
-                    setSelectedFile((prev) => {
-                        if (!prev || prev.progress >= 100) {
-                            clearInterval(convertInterval);
-                            return prev ? { ...prev, status: 'completed', progress: 100 } : null;
+                if (response.status === 'completed') {
+                    setSelectedFile((prev) =>
+                        prev ? { ...prev, status: 'completed', progress: 100 } : null
+                    );
+                } else {
+                    // status === 'processing': poll hasta completed/failed (evita timeout 504)
+                    const pollStatus = async () => {
+                        const opts =
+                            isAnonymous && sessionId ? { anonymousSessionId: sessionId } : undefined;
+                        for (let i = 0; i < 120; i++) {
+                            await new Promise((r) => setTimeout(r, 1500));
+                            const st = await apiService.getConversionStatus(
+                                response.conversion_id,
+                                opts
+                            );
+                            if (st.status === 'completed') {
+                                if (
+                                    !isAnonymous &&
+                                    user &&
+                                    !isAdminUnlimited &&
+                                    setUser
+                                ) {
+                                    if (user.premium_plan_id === 'Básico') {
+                                        setUser({
+                                            ...user,
+                                            monthly_conversion_count:
+                                                (user.monthly_conversion_count ?? 0) + 1,
+                                        });
+                                    } else {
+                                        setUser({
+                                            ...user,
+                                            free_conversion_count:
+                                                (user.free_conversion_count ?? 0) + 1,
+                                        });
+                                    }
+                                }
+                                setSelectedFile((prev) =>
+                                    prev ? { ...prev, status: 'completed', progress: 100 } : null
+                                );
+                                return;
+                            }
+                            if (st.status === 'failed') {
+                                setSelectedFile((prev) =>
+                                    prev
+                                        ? {
+                                              ...prev,
+                                              status: 'error',
+                                              errorMessage:
+                                                  st.error_message ||
+                                                  'Conversion failed. Please try again.',
+                                          }
+                                        : null
+                                );
+                                return;
+                            }
+                            setSelectedFile((prev) =>
+                                prev ? { ...prev, progress: Math.min(95, 60 + i * 3) } : null
+                            );
                         }
-                        return { ...prev, progress: prev.progress + 10 };
-                    });
-                }, 300);
+                        setSelectedFile((prev) =>
+                            prev
+                                ? {
+                                      ...prev,
+                                      status: 'error',
+                                      errorMessage:
+                                          'Conversion is taking longer than expected. Please check your history.',
+                                  }
+                                : null
+                        );
+                    };
+                    pollStatus();
+                }
             } catch (error: unknown) {
                 console.error('Conversion failed:', error);
                 const detail =
@@ -123,14 +191,17 @@ export function useConversion(options: UseConversionOptions) {
                     setShowUpgradeModal(true);
                     setSelectedFile((prev) => (prev ? { ...prev, status: 'idle' } : null));
                 } else {
+                    const isNetworkError =
+                        (typeof detail === 'string' && detail.toLowerCase().includes('failed to fetch')) ||
+                        (error instanceof TypeError && (error as Error).message?.includes('fetch'));
+                    const errorMsg = isNetworkError
+                        ? 'Error de conexión. Verifica tu internet o intenta más tarde.'
+                        : typeof detail === 'string'
+                            ? detail
+                            : 'Conversion failed. Please try again.';
                     setSelectedFile((prev) =>
                         prev
-                            ? {
-                                ...prev,
-                                status: 'error',
-                                errorMessage:
-                                    typeof detail === 'string' ? detail : 'Conversion failed. Please try again.',
-                            }
+                            ? { ...prev, status: 'error', errorMessage: errorMsg }
                             : null
                     );
                 }

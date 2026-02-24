@@ -2,7 +2,9 @@
 Text and Document Conversion Converters
 Handles: TXT ↔ DOCX, PDF ↔ TXT
 Preserves document structure: inserts [Imagen] placeholders where images appear (accessibility).
+Uses docx2python when available for fuller extraction (headers, footers, footnotes).
 """
+import re
 from docx import Document
 from docx.oxml.ns import qn
 from typing import List, Tuple
@@ -77,8 +79,25 @@ def _para_to_text_with_image_placeholders(para) -> str:
     return "".join(parts)
 
 
+def _docx_to_text_docx2python(input_path: str, output_path: str) -> bool:
+    """Use docx2python for fuller extraction (headers, footers, footnotes, document). Normalizes image placeholders to [Imagen]."""
+    try:
+        from docx2python import docx2python
+        with docx2python(input_path) as r:
+            text = r.text or ''
+            # Normalize image placeholders (docx2python: ----imageN.ext----) to [Imagen]
+            text = re.sub(r'----image\d+[^>]*----', '[Imagen]', text, flags=re.IGNORECASE)
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write(text.strip())
+            return True
+    except ImportError:
+        return False
+    except Exception:
+        return False
+
+
 class DocxToTextConverter(BaseConverter):
-    """Convert DOCX to plain text. Inserts [Imagen] where images appear (structure + accessibility)."""
+    """Convert DOCX to plain text. Uses docx2python (headers, footers, footnotes) when available, else python-docx. Inserts [Imagen] where images appear."""
 
     @property
     def source_formats(self) -> List[str]:
@@ -92,6 +111,8 @@ class DocxToTextConverter(BaseConverter):
         """Convert DOCX to text file preserving image positions as [Imagen] placeholders."""
         try:
             self.ensure_directory(output_path)
+            if _docx_to_text_docx2python(input_path, output_path):
+                return True
             doc = Document(input_path)
             lines = []
             for block, _ in _iter_docx_blocks(doc):
