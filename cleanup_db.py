@@ -1,9 +1,11 @@
 import asyncio
 import os
 import sys
+from pathlib import Path
 
 # Add backend to path to import app modules
-sys.path.append(os.path.join(os.getcwd(), 'backend'))
+BACKEND_DIR = Path(__file__).resolve().parent / "backend"
+sys.path.append(str(BACKEND_DIR))
 
 from sqlalchemy import delete, select
 from app.core.database import AsyncSessionLocal as SessionLocal
@@ -14,6 +16,11 @@ from app.models.pdf_tool_use import PdfToolUse
 from app.models.anonymous_session import AnonymousSession
 from app.models.document import Document
 from app.models.admin_audit_log import AdminAuditLog
+
+
+STORAGE_UPLOADS = BACKEND_DIR / "storage" / "uploads"
+STORAGE_CONVERTED = BACKEND_DIR / "storage" / "converted"
+
 
 async def cleanup_database():
     print("🚀 Starting database cleanup...")
@@ -62,7 +69,7 @@ async def cleanup_database():
                 db.add(su)
 
             await db.commit()
-            print("✨ Cleanup completed successfully!")
+            print("✨ Database cleanup completed successfully!")
             
         except Exception as e:
             await db.rollback()
@@ -70,5 +77,37 @@ async def cleanup_database():
             import traceback
             traceback.print_exc()
 
-if __name__ == "__main__":
+
+def cleanup_storage_dirs():
+    print("🧹 Cleaning storage directories (uploads, converted)...")
+    removed = 0
+    for dir_path in (STORAGE_UPLOADS, STORAGE_CONVERTED):
+        if not dir_path.exists():
+            continue
+        for entry in list(dir_path.iterdir()):
+            if entry.is_file():
+                entry.unlink()
+                removed += 1
+                print(f"  Removed file: {entry.relative_to(BACKEND_DIR)}")
+            elif entry.is_dir():
+                # Remove all files inside the directory tree
+                for f in entry.rglob("*"):
+                    if f.is_file():
+                        f.unlink()
+                        removed += 1
+                # Remove directories from deepest to root
+                for d in sorted(entry.rglob("*"), key=lambda x: -len(x.parts)):
+                    if d.is_dir():
+                        d.rmdir()
+                entry.rmdir()
+                removed += 1
+    print(f"✨ Storage cleanup completed. Items removed: {removed}")
+
+
+def main():
     asyncio.run(cleanup_database())
+    cleanup_storage_dirs()
+
+
+if __name__ == "__main__":
+    main()
