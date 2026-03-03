@@ -24,7 +24,7 @@ interface AIAssistantFABProps {
 const WELCOME_MESSAGE: Message = {
     id: 'welcome',
     role: 'assistant',
-    content: '👋 ¡Hola! Soy tu Asistente de IA. ¿En qué puedo ayudarte?',
+    content: 'Soy el Asistente de IA de DocAI Platform. ¿Quieres convertir, resumir o analizar un documento? Indícame qué necesitas y te ayudo.',
     timestamp: new Date(),
 };
 
