@@ -14,7 +14,6 @@ from typing import Optional, Tuple
 from docx import Document
 from lxml import etree
 
-
 # Namespace JATS
 JATS_NS = "http://jats.nlm.nih.gov"
 XLINK_NS = "http://www.w3.org/1999/xlink"
@@ -144,7 +143,7 @@ CONTENIDO:
             {"role": "user", "content": [{"type": "text", "text": user_prompt}]}
         ],
     }
-    
+
     try:
         response = client.invoke_model(
             modelId=model_id,
@@ -161,7 +160,7 @@ CONTENIDO:
     response_body = json.loads(response["body"].read())
     if "content" not in response_body or not response_body["content"]:
         raise BedrockJatsError("Respuesta vacía de Bedrock")
-    
+
     raw_text = response_body["content"][0]["text"].strip()
     # Quitar posible markdown
     raw_text = re.sub(r"^```(?:xml)?\s*", "", raw_text)
