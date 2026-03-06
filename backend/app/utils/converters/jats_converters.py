@@ -2,7 +2,7 @@
 DOCX ↔ XML JATS Conversion Converters
 Handles: Microsoft Word to JATS (Journal Article Tag Suite) XML format
 Used for academic/scientific article publishing.
-Extracts images and tables; produces XML + image files for OJS (ZIP download).
+Generates external media references for OJS dependent files.
 """
 from docx import Document
 from docx.table import Table
@@ -11,7 +11,6 @@ from pathlib import Path
 from typing import List, Dict, Tuple, Optional, Union
 import re
 import unicodedata
-import zipfile
 from datetime import datetime
 
 from app.utils.base_converter import BaseConverter, ConversionError
@@ -79,6 +78,17 @@ class DocxToJATSConverter(BaseConverter):
         'instituto', 'politécnico', 'tecnológico',
     )
 
+    # Article-type labels that can appear before the actual title
+    _ARTICLE_TYPES = {
+        'artículo original', 'articulo original', 'original article',
+        'artículo de revisión', 'articulo de revision', 'review article',
+        'artículo de investigación', 'articulo de investigacion', 'research article',
+        'artículo de reflexión', 'articulo de reflexion', 'reflection article',
+        'reporte de caso', 'case report',
+        'carta al editor', 'letter to the editor',
+        'editorial', 'nota técnica', 'nota tecnica', 'short communication',
+    }
+
     # In-text citation patterns
     # Pattern A: Author (YYYY) or Author y Author (YYYY)  → xref wraps only the year
     # Pattern B: (Author..., YYYY) or (Author... YYYY)    → xref wraps full inner content
@@ -95,6 +105,22 @@ class DocxToJATSConverter(BaseConverter):
         r'\(([A-ZÁÉÍÓÚÑ][^)]*?)\s+(\d{4}[a-z]?)(?:[^)]{0,20})?\)'
     )
 
+    # Figure/table caption and in-text reference patterns
+    _FIG_CAPTION_RE = re.compile(r'^(Figura|Fig\.?)\s+(\d+[a-z]?)\s*[.\s:]*(.*)?$', re.IGNORECASE)
+    _TABLE_CAPTION_RE = re.compile(r'^(Tabla|Tab\.?)\s+(\d+[a-z]?)\s*[.\s:]*(.*)?$', re.IGNORECASE)
+    # Single reference (used for xref replacement in paragraph text)
+    _FIGREF_RE = re.compile(
+        r'\b(Figura|Fig\.?|Tabla|Tab\.?)\s*(?:N(?:[°º]|o\.?)\s*)?(\d+[a-z]?)\b',
+        re.IGNORECASE,
+    )
+    # Wider matcher (used to collect all referenced media ids, including plurals/lists/ranges)
+    _MEDIA_REF_BLOCK_RE = re.compile(
+        r'\b(Figuras?|Figs?\.?|Tablas?|Tabs?\.?)\s*'
+        r'(?:N(?:[°º]|o\.?)\s*)?'
+        r'((?:\d+[a-z]?)(?:\s*(?:,|;|y|e|and|&|-|–)\s*\d+[a-z]?){0,30})',
+        re.IGNORECASE,
+    )
+
     @property
     def source_formats(self) -> List[str]:
         return ['docx']
@@ -104,55 +130,28 @@ class DocxToJATSConverter(BaseConverter):
         return ['xml']
 
     # ------------------------------------------------------------------ #
-    # Image extraction
-    # ------------------------------------------------------------------ #
-
-    def _extract_images_from_docx(self, input_path: str) -> List[Tuple[bytes, str]]:
-        """Extract image blobs from DOCX word/media/. Returns list of (bytes, extension)."""
-        result: List[Tuple[bytes, str]] = []
-        try:
-            with zipfile.ZipFile(input_path, 'r') as z:
-                for name in z.namelist():
-                    if not name.startswith('word/media/'):
-                        continue
-                    data = z.read(name)
-                    ext = Path(name).suffix.lstrip('.').lower() or 'png'
-                    if ext not in ('png', 'jpeg', 'jpg', 'gif', 'emf', 'wmf'):
-                        ext = 'png'
-                    result.append((data, ext))
-        except Exception:
-            pass
-        return result
-
-    # ------------------------------------------------------------------ #
     # Main entry point
     # ------------------------------------------------------------------ #
 
     def convert(self, input_path: str, output_path: str) -> bool:
-        """Convert DOCX to JATS XML."""
+        """
+        Convert DOCX to JATS XML.
+        - Detects in-text references (Figura/Tabla N).
+        - Creates external media references with forced names:
+          fig-N.jpg and table-N.jpg.
+        - Does not extract or package image files.
+        """
         try:
             self.ensure_directory(output_path)
-            output_dir = Path(output_path).parent
-            output_base = Path(output_path).stem
 
             doc = Document(input_path)
 
-            # Save images alongside XML
-            image_filenames: List[str] = []
-            for i, (data, ext) in enumerate(self._extract_images_from_docx(input_path), 1):
-                fn = f"{output_base}_image_{i}.{ext}"
-                with open(output_dir / fn, 'wb') as f:
-                    f.write(data)
-                image_filenames.append(fn)
-
             metadata = self._extract_metadata(doc, input_path)
             body_sections = self._extract_body(doc)
+            self._inject_external_media_references(doc, body_sections)
             references = self._extract_references(doc)
 
-            jats_xml = self._build_jats_xml(
-                metadata, body_sections, references,
-                image_filenames=image_filenames,
-            )
+            jats_xml = self._build_jats_xml(metadata, body_sections, references)
 
             tree = etree.ElementTree(jats_xml)
             tree.write(
@@ -166,6 +165,7 @@ class DocxToJATSConverter(BaseConverter):
                     ' "https://jats.nlm.nih.gov/publishing/1.1/JATS-journalpublishing1.dtd">'
                 ),
             )
+
             return True
 
         except Exception as e:
@@ -303,6 +303,8 @@ class DocxToJATSConverter(BaseConverter):
         in_keywords_en = False
         abstract_es_parts: List[str] = []
         abstract_en_parts: List[str] = []
+        title_set = False
+        check_trans_title = False
 
         current_author: Optional[Dict] = None
 
@@ -315,9 +317,13 @@ class DocxToJATSConverter(BaseConverter):
                 continue
             text_lower = text.lower()
 
-            # ---- Title (first paragraph) --------------------------------
-            if i == 0:
+            # ---- Title: first non-empty paragraph that is NOT article type
+            if not title_set:
+                if text_lower in self._ARTICLE_TYPES:
+                    continue
                 metadata['title'] = text
+                title_set = True
+                check_trans_title = True
                 continue
 
             # ---- DOI ----------------------------------------------------
@@ -440,18 +446,31 @@ class DocxToJATSConverter(BaseConverter):
             # ---- Lines to skip (URL-only, date markers) ----------------
             if text.startswith(('http://', 'https://', 'www.', 'URL:', 'DOI:', '©')):
                 continue
+            recv_keywords = ('recibido', 'recepción', 'received')
+            acc_keywords = ('aceptado', 'aceptación', 'accepted')
             is_date_line = (
-                bool(self._DATE_ES_RE.search(text))
-                and any(w in text_lower for w in ('recibido', 'aceptado', 'received', 'accepted'))
+                (
+                    (bool(self._DATE_ES_RE.search(text)) or bool(self._DATE_SLASH_RE.search(text)))
+                    and any(w in text_lower for w in recv_keywords + acc_keywords)
+                )
+                or text_lower.startswith((
+                    'recibido:', 'aceptado:', 'received:', 'accepted:',
+                    'recibido ', 'aceptado ',
+                ))
+                or (
+                    any(w in text_lower for w in recv_keywords)
+                    and any(w in text_lower for w in acc_keywords)
+                )
             )
             if is_date_line:
                 continue
 
-            # ---- Possible English / trans-title (i == 1) ---------------
-            if i == 1 and len(text) > 15:
+            # ---- Trans-title: second non-empty paragraph candidate ------
+            if check_trans_title and len(text) > 15:
+                check_trans_title = False
                 has_url = text.startswith('http')
                 has_orcid = bool(self._ORCID_RE.search(text))
-                has_date = bool(self._DATE_ES_RE.search(text))
+                has_date = bool(self._DATE_ES_RE.search(text)) or bool(self._DATE_SLASH_RE.search(text))
                 is_inst = any(w in text_lower for w in self._INST_KEYWORDS)
                 if not (has_url or has_orcid or has_date or is_inst):
                     metadata['trans_title'] = text
@@ -527,12 +546,15 @@ class DocxToJATSConverter(BaseConverter):
     # Body extraction
     # ------------------------------------------------------------------ #
 
-    def _extract_body(self, doc: Document) -> List[Tuple[str, List[Union[str, List[List[str]]]]]]:
-        """Extract body sections, skipping pre-body front matter content."""
-        sections: List[Tuple[str, List[Union[str, List[List[str]]]]]] = []
+    def _extract_body(
+        self,
+        doc: Document,
+    ) -> List[Tuple[str, List[Union[str, List[List[str]], Dict]]]]:
+        """Extract body sections as text only (external media references are inferred later)."""
+        sections: List[Tuple[str, List[Union[str, List[List[str]], Dict]]]] = []
         current_section: Optional[str] = None
-        current_items: List[Union[str, List[List[str]]]] = []
-        pre_body = True  # Ignore content until the first recognised body heading
+        current_items: List[Union[str, List[List[str]], Dict]] = []
+        pre_body = True
 
         def flush() -> None:
             if current_section is not None and current_items:
@@ -540,32 +562,19 @@ class DocxToJATSConverter(BaseConverter):
 
         for block in doc.iter_inner_content():
             if isinstance(block, Table):
-                if not pre_body and current_section is not None:
-                    rows = [
-                        [(c.text or '').strip() for c in row.cells]
-                        for row in block.rows
-                    ]
-                    if rows:
-                        current_items.append(rows)
+                # Tables are expected as external dependent files in OJS.
                 continue
 
             text = (block.text or '').strip()
-            if not text:
-                continue
-
             style = getattr(getattr(block, 'style', None), 'name', '') or ''
             text_lower = text.lower()
             is_heading = style.startswith('Heading')
 
-            # Stop body extraction at the references heading
-            if any(
-                text_lower == lbl or text_lower.startswith(lbl)
-                for lbl in ('referencias', 'bibliografía', 'bibliography', 'references')
-            ):
+            # Stop body extraction at references heading
+            if any(text_lower == lbl or text_lower.startswith(lbl) for lbl in self._REFS_LABELS):
                 break
 
             is_body_section = text_lower in self._BODY_SECTION_LABELS and len(text) < 100
-
             if is_heading or is_body_section:
                 if pre_body and is_body_section:
                     pre_body = False
@@ -573,12 +582,16 @@ class DocxToJATSConverter(BaseConverter):
                     flush()
                     current_section = text or 'Sección'
                     current_items = []
-            elif not pre_body and current_section is not None:
+                continue
+
+            if pre_body or current_section is None:
+                continue
+
+            if text:
                 current_items.append(text)
 
         flush()
 
-        # Fallback: use simpler detection if nothing was found
         if not sections:
             sections = self._extract_body_fallback(doc)
 
@@ -586,11 +599,11 @@ class DocxToJATSConverter(BaseConverter):
 
     def _extract_body_fallback(
         self, doc: Document
-    ) -> List[Tuple[str, List[Union[str, List[List[str]]]]]]:
+    ) -> List[Tuple[str, List[Union[str, List[List[str]], Dict]]]]:
         """Fallback body extraction that mirrors the original behaviour."""
-        sections: List[Tuple[str, List[Union[str, List[List[str]]]]]] = []
+        sections: List[Tuple[str, List[Union[str, List[List[str]], Dict]]]] = []
         current_section: Optional[str] = None
-        current_items: List[Union[str, List[List[str]]]] = []
+        current_items: List[Union[str, List[List[str]], Dict]] = []
 
         def flush() -> None:
             if current_section is not None and current_items:
@@ -598,11 +611,7 @@ class DocxToJATSConverter(BaseConverter):
 
         for block in doc.iter_inner_content():
             if isinstance(block, Table):
-                rows = [
-                    [(c.text or '').strip() for c in row.cells] for row in block.rows
-                ]
-                if rows and current_section is not None:
-                    current_items.append(rows)
+                # Tables are expected as external dependent files in OJS.
                 continue
             text = (block.text or '').strip()
             style = getattr(getattr(block, 'style', None), 'name', '') or ''
@@ -615,6 +624,128 @@ class DocxToJATSConverter(BaseConverter):
                 current_items.append(text)
         flush()
         return sections
+
+    def _media_number_sort_key(self, token: str) -> Tuple[int, str]:
+        """Sort media ids naturally: 2 < 10 and 2a after 2."""
+        m = re.match(r'^(\d+)([a-z]?)$', token or '', re.IGNORECASE)
+        if not m:
+            return (10**9, token or '')
+        return (int(m.group(1)), (m.group(2) or '').lower())
+
+    def _media_kind_from_prefix(self, prefix: str) -> str:
+        """Resolve textual media prefix to internal kind."""
+        normalized = self._strip_accents((prefix or '').lower()).replace('.', '')
+        return 'table_fig' if normalized.startswith('tab') else 'fig'
+
+    def _expand_media_id_sequence(self, text: str) -> List[str]:
+        """
+        Expand a sequence like '1, 2 y 3' or '1-3' into media ids.
+        Supports numeric ids with optional trailing letter (e.g., 2a).
+        """
+        cleaned = (text or '').lower().strip()
+        if not cleaned:
+            return []
+        cleaned = cleaned.replace('–', '-')
+        cleaned = re.sub(r'\b(?:y|e|and|&)\b', ',', cleaned)
+        cleaned = re.sub(r'\s+', ' ', cleaned)
+
+        ids: List[str] = []
+        for part in (p.strip() for p in cleaned.split(',')):
+            if not part:
+                continue
+            token = re.sub(r'^(?:n(?:[°º]|o\.?))\s*', '', part).strip()
+            if not token:
+                continue
+
+            range_match = re.match(r'^(\d+)-(\d+)$', token)
+            if range_match:
+                start = int(range_match.group(1))
+                end = int(range_match.group(2))
+                if 0 < start <= end and (end - start) <= 50:
+                    for n in range(start, end + 1):
+                        ids.append(str(n))
+                continue
+
+            token_match = re.match(r'^(\d+[a-z]?)$', token)
+            if token_match:
+                ids.append(token_match.group(1))
+
+        # Preserve order and deduplicate
+        seen = set()
+        deduped: List[str] = []
+        for token in ids:
+            if token not in seen:
+                seen.add(token)
+                deduped.append(token)
+        return deduped
+
+    def _extract_media_references_from_text(self, text: str) -> List[Tuple[str, str]]:
+        """Extract media references from text as (kind, id_token)."""
+        refs: List[Tuple[str, str]] = []
+        if not text:
+            return refs
+
+        for m in self._MEDIA_REF_BLOCK_RE.finditer(text):
+            kind = self._media_kind_from_prefix(m.group(1))
+            seq = m.group(2) or ''
+            for token in self._expand_media_id_sequence(seq):
+                refs.append((kind, token))
+        return refs
+
+    def _inject_external_media_references(
+        self,
+        doc: Document,
+        body_sections: List[Tuple[str, List[Union[str, List[List[str]], Dict]]]],
+    ) -> None:
+        """
+        Create placeholder media nodes from in-text references only.
+        Expected naming convention:
+        - Figura N -> fig-N.jpg
+        - Tabla N  -> table-N.jpg
+        """
+        if not body_sections:
+            body_sections.append(('Contenido', []))
+
+        refs_by_kind: Dict[str, set] = {'fig': set(), 'table_fig': set()}
+
+        # 1) Scan full document paragraphs (including sections after references).
+        for para in doc.paragraphs:
+            text = (para.text or '').strip()
+            if not text:
+                continue
+            for kind, number in self._extract_media_references_from_text(text):
+                refs_by_kind[kind].add(number)
+
+        # 2) Scan extracted body items as fallback/complement.
+        for _section_title, items in body_sections:
+            for item in items:
+                if not isinstance(item, str):
+                    continue
+                for kind, number in self._extract_media_references_from_text(item):
+                    refs_by_kind[kind].add(number)
+
+        if not refs_by_kind['fig'] and not refs_by_kind['table_fig']:
+            return
+
+        media_items: List[Dict[str, str]] = []
+        for number in sorted(refs_by_kind['fig'], key=self._media_number_sort_key):
+            media_items.append({
+                'kind': 'fig',
+                'label': f'Figura {number}',
+                'caption': '',
+                'rid': f'f{number}',
+                'filename': f'fig-{number}.jpg',
+            })
+        for number in sorted(refs_by_kind['table_fig'], key=self._media_number_sort_key):
+            media_items.append({
+                'kind': 'table_fig',
+                'label': f'Tabla {number}',
+                'caption': '',
+                'rid': f't{number}',
+                'filename': f'table-{number}.jpg',
+            })
+
+        body_sections[-1][1].extend(media_items)
 
     # ------------------------------------------------------------------ #
     # References extraction
@@ -849,27 +980,83 @@ class DocxToJATSConverter(BaseConverter):
         first = norm.split()[0] if ' ' in norm else norm
         return index.get((first, year))
 
+    def _build_media_index(
+        self,
+        body_sections: List[Tuple[str, List[Union[str, List[List[str]], Dict]]]],
+    ) -> Dict[str, Dict[str, str]]:
+        """
+        Build label->(rid, ref-type) map for figure/table references.
+        Keys are normalized variants: "figura 1", "fig 1", "tabla 2a", "tab 2a".
+        """
+        media_index: Dict[str, Dict[str, str]] = {}
+
+        def norm(s: str) -> str:
+            s = self._strip_accents((s or '').lower())
+            s = re.sub(r'\s+', ' ', s).strip()
+            return s
+
+        for _section_title, items in body_sections:
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                rid = (item.get('rid') or '').strip()
+                label = (item.get('label') or '').strip()
+                if not rid or not label:
+                    continue
+                m = re.match(r'^(figura|fig\.?|tabla|tab\.?)\s+(\d+[a-z]?)$', label, re.IGNORECASE)
+                if not m:
+                    continue
+                prefix = m.group(1).lower().replace('.', '')
+                num = m.group(2).lower()
+                if prefix in ('figura', 'fig'):
+                    media_index[norm(f'figura {num}')] = {'rid': rid, 'ref_type': 'fig'}
+                    media_index[norm(f'fig {num}')] = {'rid': rid, 'ref_type': 'fig'}
+                else:
+                    # Tables are managed as figure-like dependent images for OJS.
+                    media_index[norm(f'tabla {num}')] = {'rid': rid, 'ref_type': 'fig'}
+                    media_index[norm(f'tab {num}')] = {'rid': rid, 'ref_type': 'fig'}
+        return media_index
+
     def _add_para_with_xrefs(
         self,
         parent_el: etree.Element,
         text: str,
         citation_index: Dict[Tuple[str, str], str],
+        media_index: Optional[Dict[str, Dict[str, str]]] = None,
     ) -> None:
         """
-        Create a <p> element whose in-text citations are wrapped in
-        <xref ref-type="bibr" rid="B{n}"> elements so they become clickable links.
-
-        Pattern A  →  Author (YYYY)      : xref wraps only the year
-        Pattern B  →  (Author..., YYYY)  : xref wraps the full inner content
+        Create a <p> where bibliography and figure/table references become clickable:
+        - <xref ref-type="bibr" ...> for author-year citations
+        - <xref ref-type="fig" ...>  for Figura/Tabla references
         """
         p = etree.SubElement(parent_el, 'p')
-        if not citation_index or not text:
+        if not text:
             p.text = text or ''
+            return
+        media_index = media_index or {}
+
+        matches: List[Tuple[int, int, str, re.Match]] = []
+        for m in self._CITATION_RE.finditer(text):
+            matches.append((m.start(), m.end(), 'bibr', m))
+        for m in self._FIGREF_RE.finditer(text):
+            matches.append((m.start(), m.end(), 'fig', m))
+        matches.sort(key=lambda x: (x[0], -(x[1] - x[0])))
+
+        # Remove overlaps by keeping the first match by sorted order
+        clean: List[Tuple[int, int, str, re.Match]] = []
+        cursor = -1
+        for start, end, kind, m in matches:
+            if start < cursor:
+                continue
+            clean.append((start, end, kind, m))
+            cursor = end
+
+        if not clean:
+            p.text = text
             return
 
         last_end = 0
-        last_el: Optional[etree.Element] = None   # last child element, for .tail
-
+        last_el: Optional[etree.Element] = None
         def append_text(s: str) -> None:
             if not s:
                 return
@@ -878,53 +1065,71 @@ class DocxToJATSConverter(BaseConverter):
             else:
                 last_el.tail = (last_el.tail or '') + s
 
-        for m in self._CITATION_RE.finditer(text):
-            append_text(text[last_end:m.start()])
+        for start, end, kind, m in clean:
+            append_text(text[last_end:start])
 
-            if m.group(1):
-                # ---- Pattern A: Author (YYYY) --------------------------------
-                author_text = m.group(1)
-                year = m.group(2)
-                first_surname = re.search(r'[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+', author_text)
-                rid = (
-                    self._lookup_citation(first_surname.group(0), year, citation_index)
-                    if first_surname else None
-                )
-                if rid:
-                    full = m.group(0)
-                    paren_idx = full.index('(')
-                    pre_paren = full[:paren_idx]          # e.g. "Ramírez "
-                    inside = full[paren_idx + 1:-1]       # e.g. "2020" or "2020, p. 5"
-                    year_pos = inside.index(year)
-                    after_year = inside[year_pos + len(year):]   # e.g. "" or ", p. 5"
-                    append_text(pre_paren + '(')
-                    xref = etree.SubElement(p, 'xref', {'ref-type': 'bibr', 'rid': rid})
-                    xref.text = year
-                    xref.tail = after_year + ')'
+            if kind == 'fig':
+                ref_label = m.group(1)
+                ref_num = m.group(2).lower()
+                prefix = self._strip_accents(ref_label.lower().replace('.', ''))
+                key = f'figura {ref_num}' if prefix in ('figura', 'fig') else f'tabla {ref_num}'
+                media_ref = media_index.get(key)
+                if media_ref:
+                    xref = etree.SubElement(
+                        p,
+                        'xref',
+                        {'ref-type': media_ref['ref_type'], 'rid': media_ref['rid']},
+                    )
+                    xref.text = m.group(0)
                     last_el = xref
                 else:
                     append_text(m.group(0))
-
+            elif citation_index:
+                if m.group(1):
+                    # Pattern A: Author (YYYY) -> xref wraps year only
+                    author_text = m.group(1)
+                    year = m.group(2)
+                    first_surname = re.search(r'[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+', author_text)
+                    rid = (
+                        self._lookup_citation(first_surname.group(0), year, citation_index)
+                        if first_surname else None
+                    )
+                    if rid:
+                        full = m.group(0)
+                        paren_idx = full.index('(')
+                        pre_paren = full[:paren_idx]
+                        inside = full[paren_idx + 1:-1]
+                        year_pos = inside.index(year)
+                        after_year = inside[year_pos + len(year):]
+                        append_text(pre_paren + '(')
+                        xref = etree.SubElement(p, 'xref', {'ref-type': 'bibr', 'rid': rid})
+                        xref.text = year
+                        xref.tail = after_year + ')'
+                        last_el = xref
+                    else:
+                        append_text(m.group(0))
+                else:
+                    # Pattern B: (Author..., YYYY) -> xref wraps inner text
+                    author_text = m.group(3)
+                    year = m.group(4)
+                    first_surname = re.search(r'[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+', author_text)
+                    rid = (
+                        self._lookup_citation(first_surname.group(0), year, citation_index)
+                        if first_surname else None
+                    )
+                    if rid:
+                        inner = m.group(0)[1:-1]
+                        append_text('(')
+                        xref = etree.SubElement(p, 'xref', {'ref-type': 'bibr', 'rid': rid})
+                        xref.text = inner
+                        xref.tail = ')'
+                        last_el = xref
+                    else:
+                        append_text(m.group(0))
             else:
-                # ---- Pattern B: (Author..., YYYY) ----------------------------
-                author_text = m.group(3)
-                year = m.group(4)
-                first_surname = re.search(r'[A-ZÁÉÍÓÚÑ][a-záéíóúñ]+', author_text)
-                rid = (
-                    self._lookup_citation(first_surname.group(0), year, citation_index)
-                    if first_surname else None
-                )
-                if rid:
-                    inner = m.group(0)[1:-1]    # strip outer parens
-                    append_text('(')
-                    xref = etree.SubElement(p, 'xref', {'ref-type': 'bibr', 'rid': rid})
-                    xref.text = inner
-                    xref.tail = ')'
-                    last_el = xref
-                else:
-                    append_text(m.group(0))
+                append_text(m.group(0))
 
-            last_end = m.end()
+            last_end = end
 
         append_text(text[last_end:])
 
@@ -935,16 +1140,18 @@ class DocxToJATSConverter(BaseConverter):
     def _build_jats_xml(
         self,
         metadata: Dict,
-        body_sections: List[Tuple[str, List[Union[str, List[List[str]]]]]],
+        body_sections: List[Tuple[str, List[Union[str, List[List[str]], Dict]]]],
         references: List[str],
-        image_filenames: Optional[List[str]] = None,
     ) -> etree.Element:
         """Build a complete JATS 1.1 XML tree from extracted content."""
-        image_filenames = image_filenames or []
-        fig_count = len(image_filenames)
-        table_count = sum(
-            1 for _s, items in body_sections for item in items if isinstance(item, list)
+        fig_count = sum(
+            1
+            for _s, items in body_sections
+            for item in items
+            if isinstance(item, dict) and item.get('kind') in ('fig', 'table_fig')
         )
+        # In this workflow, tables are treated as image-like figures.
+        table_count = 0
 
         title_text = (metadata.get('title') or 'Sin título').strip() or 'Sin título'
         trans_title = (metadata.get('trans_title') or '').strip()
@@ -1157,6 +1364,7 @@ class DocxToJATSConverter(BaseConverter):
 
         # Build citation index once so every paragraph can resolve in-text refs
         citation_index = self._build_citation_index(references)
+        media_index = self._build_media_index(body_sections)
 
         intro_labels = {'introducción', 'introduction', 'introduccion'}
         methods_labels = {'metodología', 'methodology', 'metodos', 'methods', 'método'}
@@ -1186,28 +1394,31 @@ class DocxToJATSConverter(BaseConverter):
 
             for item in items:
                 if isinstance(item, str):
-                    # Convert in-text citations to <xref> links
-                    self._add_para_with_xrefs(sec, item, citation_index)
-                else:
-                    tbl = etree.SubElement(sec, 'table')
-                    tbody = etree.SubElement(tbl, 'tbody')
-                    for row in item:
-                        tr = etree.SubElement(tbody, 'tr')
-                        for cell in row:
-                            etree.SubElement(tr, 'td').text = cell or ''
+                    self._add_para_with_xrefs(sec, item, citation_index, media_index)
+                elif isinstance(item, dict):
+                    p_wrap = etree.SubElement(sec, 'p')
+                    label = (item.get('label') or '').strip()
+                    caption = (item.get('caption') or '').strip()
+                    filename = (item.get('filename') or '').strip()
+                    item_attrs: Dict[str, str] = {}
+                    if item.get('rid'):
+                        item_attrs['id'] = item['rid']
+
+                    # Both figures and tables are represented as <fig> with external href.
+                    media_el = etree.SubElement(p_wrap, 'fig', item_attrs)
+
+                    if label:
+                        etree.SubElement(media_el, 'label').text = label
+                    if caption:
+                        cap_el = etree.SubElement(media_el, 'caption')
+                        etree.SubElement(cap_el, 'title').text = caption
+                    if filename:
+                        etree.SubElement(media_el, 'graphic', {f'{{{self.XLINK_NS}}}href': filename})
 
         if len(body) == 0:
             sec = etree.SubElement(body, 'sec')
             etree.SubElement(sec, 'title').text = 'Contenido'
             etree.SubElement(sec, 'p').text = 'Documento convertido.'
-
-        # Images section
-        if image_filenames:
-            sec_fig = etree.SubElement(body, 'sec')
-            etree.SubElement(sec_fig, 'title').text = 'Figuras'
-            for fn in image_filenames:
-                fig = etree.SubElement(sec_fig, 'fig')
-                etree.SubElement(fig, 'graphic', {f'{{{self.XLINK_NS}}}href': fn})
 
         # ---- Back / references ------------------------------------------
         if references:
