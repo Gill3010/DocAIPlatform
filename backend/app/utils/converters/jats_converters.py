@@ -13,6 +13,7 @@ import re
 import unicodedata
 from datetime import datetime
 
+from app.core.config import settings
 from app.utils.base_converter import BaseConverter, ConversionError
 
 
@@ -133,13 +134,14 @@ class DocxToJATSConverter(BaseConverter):
     # Main entry point
     # ------------------------------------------------------------------ #
 
-    def convert(self, input_path: str, output_path: str) -> bool:
+    def convert(self, input_path: str, output_path: str, journal_meta: Optional[Dict] = None) -> bool:
         """
         Convert DOCX to JATS XML.
         - Detects in-text references (Figura/Tabla N).
         - Creates external media references with forced names:
           fig-N.jpg and table-N.jpg.
         - Does not extract or package image files.
+        - journal_meta: opcional dict con journal_id, journal_title, issn, publisher_name (multi-revista).
         """
         try:
             self.ensure_directory(output_path)
@@ -151,7 +153,7 @@ class DocxToJATSConverter(BaseConverter):
             self._inject_external_media_references(doc, body_sections)
             references = self._extract_references(doc)
 
-            jats_xml = self._build_jats_xml(metadata, body_sections, references)
+            jats_xml = self._build_jats_xml(metadata, body_sections, references, journal_meta=journal_meta)
 
             tree = etree.ElementTree(jats_xml)
             tree.write(
@@ -550,30 +552,65 @@ class DocxToJATSConverter(BaseConverter):
         self,
         doc: Document,
     ) -> List[Tuple[str, List[Union[str, List[List[str]], Dict]]]]:
-        """Extract body sections as text only (external media references are inferred later)."""
+        """
+        Extract body sections with embedded images and tables at their physical positions.
+        Sequential numbering: figures → fig-1.jpg, fig-2.jpg…; tables → table-1.jpg, table-2.jpg…
+        Captions adjacent to media items are associated automatically.
+        """
         sections: List[Tuple[str, List[Union[str, List[List[str]], Dict]]]] = []
         current_section: Optional[str] = None
         current_items: List[Union[str, List[List[str]], Dict]] = []
         pre_body = True
+        fig_seq = 0
+        table_seq = 0
 
         def flush() -> None:
             if current_section is not None and current_items:
                 sections.append((current_section, list(current_items)))
 
-        for block in doc.iter_inner_content():
-            if isinstance(block, Table):
-                # Tables are expected as external dependent files in OJS.
+        all_blocks = list(doc.iter_inner_content())
+        consumed: set = set()
+
+        for idx, block in enumerate(all_blocks):
+            if idx in consumed:
                 continue
 
+            # ---- TABLE -------------------------------------------------------
+            if isinstance(block, Table):
+                if not pre_body and current_section is not None:
+                    table_seq += 1
+                    seq = str(table_seq)
+                    caption_text = ''
+                    caption_num = None
+                    # Look ahead: next paragraph may be the caption
+                    if idx + 1 < len(all_blocks) and not isinstance(all_blocks[idx + 1], Table):
+                        nxt = (all_blocks[idx + 1].text or '').strip()
+                        tm = self._TABLE_CAPTION_RE.match(nxt)
+                        if tm:
+                            caption_num = tm.group(2).lower()
+                            caption_text = nxt
+                            consumed.add(idx + 1)
+                    current_items.append({
+                        'kind': 'table_fig',
+                        'label': f'Tabla {seq}',
+                        'caption': caption_text,
+                        'rid': f't{seq}',
+                        'filename': f'table-{seq}.jpg',
+                        'caption_num': caption_num,
+                    })
+                continue
+
+            # ---- PARAGRAPH ---------------------------------------------------
             text = (block.text or '').strip()
             style = getattr(getattr(block, 'style', None), 'name', '') or ''
             text_lower = text.lower()
             is_heading = style.startswith('Heading')
 
-            # Stop body extraction at references heading
+            # Stop at references section
             if any(text_lower == lbl or text_lower.startswith(lbl) for lbl in self._REFS_LABELS):
                 break
 
+            # Section heading → flush + start new section
             is_body_section = text_lower in self._BODY_SECTION_LABELS and len(text) < 100
             if is_heading or is_body_section:
                 if pre_body and is_body_section:
@@ -587,6 +624,39 @@ class DocxToJATSConverter(BaseConverter):
             if pre_body or current_section is None:
                 continue
 
+            # ---- Inline image ------------------------------------------------
+            if self._has_inline_image(block):
+                fig_seq += 1
+                seq = str(fig_seq)
+                caption_text = ''
+                caption_num = None
+                # Case 1: caption text in the same paragraph as the image
+                fig_m = self._FIG_CAPTION_RE.match(text)
+                if fig_m:
+                    caption_num = fig_m.group(2).lower()
+                    caption_text = text
+                else:
+                    # Case 2: caption in the next paragraph
+                    if idx + 1 < len(all_blocks) and not isinstance(all_blocks[idx + 1], Table):
+                        nxt = (all_blocks[idx + 1].text or '').strip()
+                        fm = self._FIG_CAPTION_RE.match(nxt)
+                        if fm:
+                            caption_num = fm.group(2).lower()
+                            caption_text = nxt
+                            consumed.add(idx + 1)
+                current_items.append({
+                    'kind': 'fig',
+                    'label': f'Figura {seq}',
+                    'caption': caption_text,
+                    'rid': f'f{seq}',
+                    'filename': f'fig-{seq}.jpg',
+                    'caption_num': caption_num,
+                })
+                continue
+
+            # ---- Regular text (skip pure caption paragraphs) -----------------
+            # A standalone caption para (no adjacent image detected) is kept as
+            # body text so its "Figura N" label remains clickable via xref.
             if text:
                 current_items.append(text)
 
@@ -600,28 +670,90 @@ class DocxToJATSConverter(BaseConverter):
     def _extract_body_fallback(
         self, doc: Document
     ) -> List[Tuple[str, List[Union[str, List[List[str]], Dict]]]]:
-        """Fallback body extraction that mirrors the original behaviour."""
+        """Fallback body extraction with inline image and table detection."""
         sections: List[Tuple[str, List[Union[str, List[List[str]], Dict]]]] = []
         current_section: Optional[str] = None
         current_items: List[Union[str, List[List[str]], Dict]] = []
+        fig_seq = 0
+        table_seq = 0
 
         def flush() -> None:
             if current_section is not None and current_items:
                 sections.append((current_section, list(current_items)))
 
-        for block in doc.iter_inner_content():
-            if isinstance(block, Table):
-                # Tables are expected as external dependent files in OJS.
+        all_blocks = list(doc.iter_inner_content())
+        consumed: set = set()
+
+        for idx, block in enumerate(all_blocks):
+            if idx in consumed:
                 continue
+
+            if isinstance(block, Table):
+                if current_section is not None:
+                    table_seq += 1
+                    seq = str(table_seq)
+                    caption_text = ''
+                    caption_num = None
+                    if idx + 1 < len(all_blocks) and not isinstance(all_blocks[idx + 1], Table):
+                        nxt = (all_blocks[idx + 1].text or '').strip()
+                        tm = self._TABLE_CAPTION_RE.match(nxt)
+                        if tm:
+                            caption_num = tm.group(2).lower()
+                            caption_text = nxt
+                            consumed.add(idx + 1)
+                    current_items.append({
+                        'kind': 'table_fig',
+                        'label': f'Tabla {seq}',
+                        'caption': caption_text,
+                        'rid': f't{seq}',
+                        'filename': f'table-{seq}.jpg',
+                        'caption_num': caption_num,
+                    })
+                continue
+
             text = (block.text or '').strip()
             style = getattr(getattr(block, 'style', None), 'name', '') or ''
             text_lower = text.lower()
+
             if style.startswith('Heading') or text_lower in self._BODY_SECTION_LABELS:
                 flush()
                 current_section = text or 'Sección'
                 current_items = []
-            elif text and current_section is not None:
+                continue
+
+            if current_section is None:
+                continue
+
+            if self._has_inline_image(block):
+                fig_seq += 1
+                seq = str(fig_seq)
+                caption_text = ''
+                caption_num = None
+                fig_m = self._FIG_CAPTION_RE.match(text)
+                if fig_m:
+                    caption_num = fig_m.group(2).lower()
+                    caption_text = text
+                else:
+                    if idx + 1 < len(all_blocks) and not isinstance(all_blocks[idx + 1], Table):
+                        nxt = (all_blocks[idx + 1].text or '').strip()
+                        fm = self._FIG_CAPTION_RE.match(nxt)
+                        if fm:
+                            caption_num = fm.group(2).lower()
+                            caption_text = nxt
+                            consumed.add(idx + 1)
+                current_items.append({
+                    'kind': 'fig',
+                    'label': f'Figura {seq}',
+                    'caption': caption_text,
+                    'rid': f'f{seq}',
+                    'filename': f'fig-{seq}.jpg',
+                    'caption_num': caption_num,
+                })
+                continue
+
+            if text:
                 current_items.append(text)
+
         flush()
         return sections
 
@@ -692,23 +824,76 @@ class DocxToJATSConverter(BaseConverter):
                 refs.append((kind, token))
         return refs
 
+    def _has_inline_image(self, para) -> bool:
+        """
+        Return True only if the paragraph contains an actual embedded image.
+        Uses a:blip (DrawingML) or v:imagedata (VML legacy) as the signal.
+        These are present exclusively for raster/vector images (PNG, JPG, WMF, EMF)
+        and are absent for charts, SmartArt, text boxes, WordArt, etc.
+        """
+        el = para._element
+        # DrawingML images: a:blip holds the image relationship
+        NS_A = 'http://schemas.openxmlformats.org/drawingml/2006/main'
+        if el.findall(f'.//{{{NS_A}}}blip'):
+            return True
+        # VML legacy images: v:imagedata
+        NS_V = 'urn:schemas-microsoft-com:vml'
+        if el.findall(f'.//{{{NS_V}}}imagedata'):
+            return True
+        return False
+
     def _inject_external_media_references(
         self,
         doc: Document,
         body_sections: List[Tuple[str, List[Union[str, List[List[str]], Dict]]]],
     ) -> None:
         """
-        Create placeholder media nodes from in-text references only.
-        Expected naming convention:
-        - Figura N -> fig-N.jpg
-        - Tabla N  -> table-N.jpg
+        Add placeholder media nodes for text references NOT already detected as
+        physical embedded images/tables by _extract_body.
+
+        Physical items (detected inline) take priority; this method only adds
+        items for references that have NO corresponding physical element.
+        Naming convention: Figura N → fig-N.jpg, Tabla N → table-N.jpg.
         """
         if not body_sections:
             body_sections.append(('Contenido', []))
 
+        # Collect rids already present from physical detection
+        physical_fig_rids: set = set()
+        physical_table_rids: set = set()
+        # Also collect caption_nums already covered
+        covered_fig_nums: set = set()
+        covered_table_nums: set = set()
+
+        for _sec, items in body_sections:
+            for item in items:
+                if not isinstance(item, dict):
+                    continue
+                rid = item.get('rid', '')
+                cap_num = (item.get('caption_num') or '').lower().strip()
+                if item.get('kind') == 'fig':
+                    physical_fig_rids.add(rid)
+                    # Sequential label number
+                    m = re.match(r'^f(\d+[a-z]?)$', rid)
+                    if m:
+                        covered_fig_nums.add(m.group(1))
+                    if cap_num:
+                        covered_fig_nums.add(cap_num)
+                elif item.get('kind') == 'table_fig':
+                    physical_table_rids.add(rid)
+                    m = re.match(r'^t(\d+[a-z]?)$', rid)
+                    if m:
+                        covered_table_nums.add(m.group(1))
+                    if cap_num:
+                        covered_table_nums.add(cap_num)
+
+        # Determine next sequential numbers beyond physical items
+        next_fig = len(physical_fig_rids) + 1
+        next_table = len(physical_table_rids) + 1
+
         refs_by_kind: Dict[str, set] = {'fig': set(), 'table_fig': set()}
 
-        # 1) Scan full document paragraphs (including sections after references).
+        # Scan full document text for Figura/Tabla references
         for para in doc.paragraphs:
             text = (para.text or '').strip()
             if not text:
@@ -716,7 +901,7 @@ class DocxToJATSConverter(BaseConverter):
             for kind, number in self._extract_media_references_from_text(text):
                 refs_by_kind[kind].add(number)
 
-        # 2) Scan extracted body items as fallback/complement.
+        # Also scan extracted body text items
         for _section_title, items in body_sections:
             for item in items:
                 if not isinstance(item, str):
@@ -724,28 +909,37 @@ class DocxToJATSConverter(BaseConverter):
                 for kind, number in self._extract_media_references_from_text(item):
                     refs_by_kind[kind].add(number)
 
-        if not refs_by_kind['fig'] and not refs_by_kind['table_fig']:
-            return
-
+        # Add only items NOT already covered by physical detection
         media_items: List[Dict[str, str]] = []
         for number in sorted(refs_by_kind['fig'], key=self._media_number_sort_key):
+            if number in covered_fig_nums:
+                continue
+            seq = str(next_fig)
+            next_fig += 1
             media_items.append({
                 'kind': 'fig',
-                'label': f'Figura {number}',
+                'label': f'Figura {seq}',
                 'caption': '',
-                'rid': f'f{number}',
-                'filename': f'fig-{number}.jpg',
+                'rid': f'f{seq}',
+                'filename': f'fig-{seq}.jpg',
+                'caption_num': number,
             })
         for number in sorted(refs_by_kind['table_fig'], key=self._media_number_sort_key):
+            if number in covered_table_nums:
+                continue
+            seq = str(next_table)
+            next_table += 1
             media_items.append({
                 'kind': 'table_fig',
-                'label': f'Tabla {number}',
+                'label': f'Tabla {seq}',
                 'caption': '',
-                'rid': f't{number}',
-                'filename': f'table-{number}.jpg',
+                'rid': f't{seq}',
+                'filename': f'table-{seq}.jpg',
+                'caption_num': number,
             })
 
-        body_sections[-1][1].extend(media_items)
+        if media_items:
+            body_sections[-1][1].extend(media_items)
 
     # ------------------------------------------------------------------ #
     # References extraction
@@ -1008,13 +1202,23 @@ class DocxToJATSConverter(BaseConverter):
                     continue
                 prefix = m.group(1).lower().replace('.', '')
                 num = m.group(2).lower()
+                # caption_num: the original number from the Word caption (may differ from seq num)
+                cap_num = (item.get('caption_num') or '').lower().strip()
                 if prefix in ('figura', 'fig'):
                     media_index[norm(f'figura {num}')] = {'rid': rid, 'ref_type': 'fig'}
                     media_index[norm(f'fig {num}')] = {'rid': rid, 'ref_type': 'fig'}
+                    # Also register the original caption number so "ver Figura 3" still resolves
+                    # when the sequential label is "Figura 2" (i.e., it's the 2nd physical image)
+                    if cap_num and cap_num != num:
+                        media_index[norm(f'figura {cap_num}')] = {'rid': rid, 'ref_type': 'fig'}
+                        media_index[norm(f'fig {cap_num}')] = {'rid': rid, 'ref_type': 'fig'}
                 else:
                     # Tables are managed as figure-like dependent images for OJS.
                     media_index[norm(f'tabla {num}')] = {'rid': rid, 'ref_type': 'fig'}
                     media_index[norm(f'tab {num}')] = {'rid': rid, 'ref_type': 'fig'}
+                    if cap_num and cap_num != num:
+                        media_index[norm(f'tabla {cap_num}')] = {'rid': rid, 'ref_type': 'fig'}
+                        media_index[norm(f'tab {cap_num}')] = {'rid': rid, 'ref_type': 'fig'}
         return media_index
 
     def _add_para_with_xrefs(
@@ -1142,6 +1346,7 @@ class DocxToJATSConverter(BaseConverter):
         metadata: Dict,
         body_sections: List[Tuple[str, List[Union[str, List[List[str]], Dict]]]],
         references: List[str],
+        journal_meta: Optional[Dict] = None,
     ) -> etree.Element:
         """Build a complete JATS 1.1 XML tree from extracted content."""
         fig_count = sum(
@@ -1181,18 +1386,36 @@ class DocxToJATSConverter(BaseConverter):
         # ---- Front ------------------------------------------------------
         front = etree.SubElement(article, 'front')
 
-        # journal-meta (generic; document does not contain journal metadata)
+        # journal-meta: journal_meta (multi-revista) > config (revista única) > placeholders OJS
+        # Los placeholders {$journalTitle} y {$siteTitle} son reemplazados automáticamente
+        # por el LensGalleyPlugin de OJS al servir el XML.
+        if journal_meta:
+            journal_id = str(journal_meta.get('journal_id') or '').strip() or '{$journalTitle}'
+            journal_title = str(journal_meta.get('journal_title') or '').strip() or '{$journalTitle}'
+            abbrev_title = str(journal_meta.get('journal_abbrev') or journal_title).strip() or '{$journalTitle}'
+            publisher_name = str(journal_meta.get('publisher_name') or '').strip() or '{$siteTitle}'
+            issn = str(journal_meta.get('issn') or '').strip()
+        else:
+            journal_id = (getattr(settings, 'JATS_JOURNAL_ID', '') or '').strip() or '{$journalTitle}'
+            journal_title = (getattr(settings, 'JATS_JOURNAL_TITLE', '') or '').strip() or '{$journalTitle}'
+            abbrev_title = journal_title
+            publisher_name = (getattr(settings, 'JATS_PUBLISHER_NAME', '') or '').strip() or '{$siteTitle}'
+            issn = (getattr(settings, 'JATS_ISSN', '') or '').strip()
+
         jm = etree.SubElement(front, 'journal-meta')
         ji = etree.SubElement(jm, 'journal-id', {'journal-id-type': 'publisher-id'})
-        ji.text = 'converted'
+        ji.text = journal_id
         jtg = etree.SubElement(jm, 'journal-title-group')
         jt = etree.SubElement(jtg, 'journal-title')
-        jt.text = 'Article'
+        jt.text = journal_title
         ab = etree.SubElement(jtg, 'abbrev-journal-title', {'abbrev-type': 'publisher'})
-        ab.text = 'Article'
+        ab.text = abbrev_title
+        if issn:
+            issn_el = etree.SubElement(jm, 'issn', {'pub-type': 'epub'})
+            issn_el.text = issn
         pub = etree.SubElement(jm, 'publisher')
         pn = etree.SubElement(pub, 'publisher-name')
-        pn.text = 'Article'
+        pn.text = publisher_name
 
         # article-meta
         am = etree.SubElement(front, 'article-meta')
