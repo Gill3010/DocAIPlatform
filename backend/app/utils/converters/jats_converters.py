@@ -1545,6 +1545,18 @@ class DocxToJATSConverter(BaseConverter):
                 etree.SubElement(da, 'month').text = accepted['month']
                 etree.SubElement(da, 'year').text = accepted['year']
 
+        # permissions (Creative Commons open-access license)
+        permissions = etree.SubElement(am, 'permissions')
+        license_el = etree.SubElement(permissions, 'license', {
+            'license-type': 'open-access',
+            f'{{{self.XLINK_NS}}}href': 'https://creativecommons.org/licenses/by-nc/4.0/',
+            f'{{{self.XML_NS}}}lang': 'es',
+        })
+        license_p = etree.SubElement(license_el, 'license-p')
+        license_p.text = (
+            'Este es un artículo publicado en acceso abierto bajo una licencia Creative Commons'
+        )
+
         # abstract (Spanish)
         if abstract_es:
             abs_el = etree.SubElement(am, 'abstract')
