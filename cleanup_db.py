@@ -16,10 +16,17 @@ from app.models.pdf_tool_use import PdfToolUse
 from app.models.anonymous_session import AnonymousSession
 from app.models.document import Document
 from app.models.admin_audit_log import AdminAuditLog
+from app.models.manuscript_format import ManuscriptFormat
 
 
 STORAGE_UPLOADS = BACKEND_DIR / "storage" / "uploads"
 STORAGE_CONVERTED = BACKEND_DIR / "storage" / "converted"
+STORAGE_FORMATTED = BACKEND_DIR / "storage" / "formatted"
+
+# Also clean the nested backend/backend/storage that exists from old deployment
+NESTED_BACKEND_DIR = BACKEND_DIR / "backend"
+NESTED_STORAGE_UPLOADS = NESTED_BACKEND_DIR / "storage" / "uploads"
+NESTED_STORAGE_CONVERTED = NESTED_BACKEND_DIR / "storage" / "converted"
 
 
 async def cleanup_database():
@@ -57,6 +64,10 @@ async def cleanup_database():
             print("📝 Deleting all audit logs...")
             await db.execute(delete(AdminAuditLog))
 
+            # 8. Delete Manuscript Formats
+            print("📄 Deleting all manuscript format records...")
+            await db.execute(delete(ManuscriptFormat))
+
             # 8. Delete Users (except superadmins)
             print("👥 Deleting users (except superadmins)...")
             await db.execute(delete(User).where(User.id.not_in(superuser_ids)))
@@ -81,7 +92,11 @@ async def cleanup_database():
 def cleanup_storage_dirs():
     print("🧹 Cleaning storage directories (uploads, converted)...")
     removed = 0
-    for dir_path in (STORAGE_UPLOADS, STORAGE_CONVERTED):
+    dirs_to_clean = [
+        STORAGE_UPLOADS, STORAGE_CONVERTED, STORAGE_FORMATTED,
+        NESTED_STORAGE_UPLOADS, NESTED_STORAGE_CONVERTED,
+    ]
+    for dir_path in dirs_to_clean:
         if not dir_path.exists():
             continue
         for entry in list(dir_path.iterdir()):

@@ -8,6 +8,7 @@ import * as admin from './admin';
 import * as ai from './ai';
 import * as pdfTools from './pdfTools';
 import * as documents from './documents';
+import * as manuscript from './manuscript';
 
 export const apiService = {
     login: auth.login,
@@ -56,6 +57,9 @@ export const apiService = {
     getDocumentPermissions: documents.getDocumentPermissions,
     addDocumentPermission: documents.addDocumentPermission,
     removeDocumentPermission: documents.removeDocumentPermission,
+    formatManuscript: manuscript.formatManuscript,
+    getManuscriptHistory: manuscript.getManuscriptHistory,
+    downloadFormattedManuscript: manuscript.downloadFormattedManuscript,
 };
 
 export { getAvatarUrl } from './config';
