@@ -19,6 +19,7 @@ from app.schemas.manuscript_format import ManuscriptFormatResponse
 
 from docx import Document
 from docx.text.paragraph import Paragraph
+from docx.shared import Cm, Pt
 
 router = APIRouter()
 
@@ -103,8 +104,40 @@ class ManuscriptFormatter:
 
     def _normalize_document(self, doc: Document):
         """Applies normalization rules to the document."""
+        self._reorder_front_matter(doc)
+        self._apply_global_apa_format(doc)
         self._normalize_paragraphs(doc)
+        self._format_references(doc)
         self._clean_empty_paragraphs(doc)
+
+    def _apply_global_apa_format(self, doc: Document):
+        """Sets standard APA document-level margins."""
+        for section in doc.sections:
+            section.top_margin = Cm(2.54)
+            section.bottom_margin = Cm(2.54)
+            section.left_margin = Cm(2.54)
+            section.right_margin = Cm(2.54)
+
+    def _reorder_front_matter(self, doc: Document):
+        """Finds the translated title (if misplaced before Abstract) and moves it below main title."""
+        paras = [p for p in doc.paragraphs if p.text.strip() and not p.text.strip().lower() in self.FILLER_LABELS]
+        if not paras: return
+
+        main_title = paras[0]
+
+        for i, p in enumerate(paras):
+            text = p.text.strip().lower()
+            if text in ('abstract', 'abstract:'):
+                if i > 1:
+                    candidate = paras[i - 1]
+                    ctext = candidate.text.strip().lower()
+                    # Ensure it's not keywords, nor author blocks
+                    if not any(k in ctext for k in ('palabras clave', 'keywords', 'resumen', '@', 'orcid', 'universidad', 'university', 'departamento')):
+                        # It is the English Title. Move it.
+                        elem = candidate._element
+                        elem.getparent().remove(elem)
+                        main_title._element.addnext(elem)
+                break
 
     def _safe_set_style(self, para: Paragraph, style_name: str):
         """Safely set a paragraph style, falling back if not found."""
@@ -150,6 +183,19 @@ class ManuscriptFormatter:
 
             non_empty_count += 1
             lower_text = text.lower()
+            style_name = getattr(para.style, 'name', '')
+
+            # Global paragraph baseline formatting (APA)
+            para.paragraph_format.line_spacing = 1.5
+            para.paragraph_format.space_after = Cm(0)
+            para.paragraph_format.space_before = Cm(0)
+            
+            is_header_style = style_name.startswith(('Heading', 'Título', 'Title', 'Subtitle'))
+            for run in para.runs:
+                run.font.name = 'Times New Roman'
+                # Enforce body font size if it has explicit overrides or is normal text
+                if not is_header_style:
+                    run.font.size = Pt(12)
 
             # 1. Check for References start
             matched_refs = self._detect_section(text, self.REFS_MAPPINGS)
@@ -165,6 +211,8 @@ class ManuscriptFormatter:
                 if matched_body:
                     self._replace_paragraph_text(para, matched_body)
                     self._safe_set_style(para, 'Heading 1')
+                    para.paragraph_format.first_line_indent = Cm(0)
+                    para.alignment = 0 # Left
                     is_body_started = True
                     continue
 
@@ -175,6 +223,7 @@ class ManuscriptFormatter:
                     self._replace_paragraph_text(para, matched_front)
                     self._safe_set_style(para, 'Heading 2')
                     para.alignment = 0  # Left
+                    para.paragraph_format.first_line_indent = Cm(0)
                     has_abstract = True
                     continue
 
@@ -183,6 +232,7 @@ class ManuscriptFormatter:
                 # Dates, URL, DOI → Left align, keep as-is
                 if lower_text.startswith(("recibido", "aceptado", "url:", "doi:", "url ", "doi ")):
                     para.alignment = 0  # Left
+                    para.paragraph_format.first_line_indent = Cm(0)
                     continue
 
                 # Remove filler/decorator labels
@@ -196,6 +246,7 @@ class ManuscriptFormatter:
                 if non_empty_count == 1:
                     self._safe_set_style(para, 'Title')
                     para.alignment = 1  # Center
+                    para.paragraph_format.first_line_indent = Cm(0)
                     for run in para.runs:
                         run.bold = True
                     continue
@@ -203,35 +254,102 @@ class ManuscriptFormatter:
                 # Trans-title (second substantive paragraph, long enough, no email/orcid)
                 if non_empty_count == 2 and len(text) > 30 and "@" not in text and "orcid" not in lower_text:
                     para.alignment = 1  # Center
+                    para.paragraph_format.first_line_indent = Cm(0)
                     for run in para.runs:
                         run.italic = True
                     continue
 
                 # Author block → Right aligned
                 para.alignment = 2  # Right
+                para.paragraph_format.first_line_indent = Cm(0)
                 continue
 
             # 5. Clean up captions (Figures, Tables)
-            if re.match(r'(?i)^(gr[aá]fico|ilustraci[oó]n|imagen|cuadro)\s+\d+', text):
+            is_caption = False
+            if re.match(r'(?i)^(gr[aá]fico|ilustraci[oó]n|imagen|cuadro|figura|tabla)\s+\d+', text):
                 new_text = self._normalize_captions(text)
                 self._replace_paragraph_text(para, new_text)
                 text = new_text
+                is_caption = True
+                para.paragraph_format.first_line_indent = Cm(0)
+                para.alignment = 1 # Center
+
+            # Body text indentation
+            if is_body_started and not is_references and not is_caption:
+                # Regular paragraph in body
+                para.alignment = 3 # Justified
+                para.paragraph_format.first_line_indent = Cm(1.27)
+            elif has_abstract and not is_body_started and not is_references and not is_caption:
+                # Abstract text
+                para.alignment = 3 # Justified
+                para.paragraph_format.first_line_indent = Cm(0)
+                if text.lower().startswith(("palabras", "keywords")):
+                    para.paragraph_format.first_line_indent = Cm(1.27)
 
             # 6. Clean up multiple spaces
             clean_text = re.sub(r' {2,}', ' ', para.text)
             if clean_text != para.text:
                 self._replace_paragraph_text(para, clean_text)
 
+    def _format_references(self, doc: Document):
+        """Consolidates reference fragments and applies APA hanging indent."""
+        in_refs = False
+        ref_paras = []
+        
+        for para in doc.paragraphs:
+            text = para.text.strip()
+            if not in_refs:
+                if text.lower() == 'referencias':
+                    in_refs = True
+                continue
+                
+            if not text:
+                continue
+            ref_paras.append(para)
+
+        if not ref_paras:
+            return
+
+        current_para = None
+
+        for para in ref_paras:
+            text = para.text.strip()
+            
+            # Simple heuristic: it's a continuation if it starts with lower case or 'http', or if previous didn't end with a period.
+            is_continuation = text.lower().startswith('http') or text[0].islower()
+            
+            if current_para is not None and is_continuation:
+                if current_para.text and not current_para.text.endswith(' ') and text and not text.startswith(' '):
+                    current_para.add_run(" ")
+                
+                for run in para.runs:
+                    new_run = current_para.add_run(run.text)
+                    new_run.bold = run.bold
+                    new_run.italic = run.italic
+                    new_run.underline = run.underline
+                
+                p = para._element
+                p.getparent().remove(p)
+            else:
+                if current_para is not None:
+                    self._apply_apa_format(current_para)
+                current_para = para
+
+        if current_para is not None:
+            self._apply_apa_format(current_para)
+
+    def _apply_apa_format(self, para: Paragraph):
+        """Applies APA 7th edition formatting to a reference paragraph."""
+        para.paragraph_format.left_indent = Cm(1.27)
+        para.paragraph_format.first_line_indent = Cm(-1.27)
+        para.alignment = 3  # WD_ALIGN_PARAGRAPH.JUSTIFY
+
     def _clean_empty_paragraphs(self, doc: Document):
-        """Removes excessive empty paragraphs (keeps max 1 consecutive)."""
-        empty_count = 0
+        """Removes all empty paragraphs by completely deleting their XML element."""
         for para in doc.paragraphs:
             if not para.text.strip():
-                empty_count += 1
-                if empty_count > 1:
-                    para.clear()
-            else:
-                empty_count = 0
+                p = para._element
+                p.getparent().remove(p)
 
 
 # ─────────────────────────────────────────────
