@@ -57,16 +57,16 @@ class ManuscriptFormatter:
     """
 
     BODY_SECTION_MAPPINGS = {
-        r'(?i)^\s*(?:\d+(\.\d+)*|[ivx]+|uno|dos|tres|cuatro|cinco|seis)\.?\s*(introducci[oó]n|introduction|intro)\s*$': 'Introducción',
-        r'(?i)^\s*(?:\d+(\.\d+)*|[ivx]+|uno|dos|tres|cuatro|cinco|seis)\.?\s*(metodolog[ií]a|methodology|m[eé]todos?|methods)\s*$': 'Metodología',
-        r'(?i)^\s*(?:\d+(\.\d+)*|[ivx]+|uno|dos|tres|cuatro|cinco|seis)\.?\s*(resultados|results)\s*$': 'Resultados',
-        r'(?i)^\s*(?:\d+(\.\d+)*|[ivx]+|uno|dos|tres|cuatro|cinco|seis)\.?\s*(discusi[oó]n|discussion)\s*$': 'Discusión',
-        r'(?i)^\s*(?:\d+(\.\d+)*|[ivx]+|uno|dos|tres|cuatro|cinco|seis)\.?\s*(conclusiones|conclusion|conclusi[oó]n|conclusions)\s*$': 'Conclusiones',
-        r'(?i)^\s*(?:\d+(\.\d+)*|[ivx]+|uno|dos|tres|cuatro|cinco|seis)\.?\s*(marco te[oó]rico|antecedentes|revisi[oó]n bibliogr[aá]fica)\s*$': 'Marco Teórico',
+        r'(?i)^\s*(?:\d+(\.\d+)*|[ivx]+|uno|dos|tres|cuatro|cinco|seis)?\.?\s*(introducci[oó]n|introduction|intro)\s*$': 'Introducción',
+        r'(?i)^\s*(?:\d+(\.\d+)*|[ivx]+|uno|dos|tres|cuatro|cinco|seis)?\.?\s*(metodolog[ií]a|methodology|m[eé]todos?|methods)\s*$': 'Metodología',
+        r'(?i)^\s*(?:\d+(\.\d+)*|[ivx]+|uno|dos|tres|cuatro|cinco|seis)?\.?\s*(resultados|results)\s*$': 'Resultados',
+        r'(?i)^\s*(?:\d+(\.\d+)*|[ivx]+|uno|dos|tres|cuatro|cinco|seis)?\.?\s*(discusi[oó]n|discussion)\s*$': 'Discusión',
+        r'(?i)^\s*(?:\d+(\.\d+)*|[ivx]+|uno|dos|tres|cuatro|cinco|seis)?\.?\s*(conclusiones|conclusion|conclusi[oó]n|conclusions)\s*$': 'Conclusiones',
+        r'(?i)^\s*(?:\d+(\.\d+)*|[ivx]+|uno|dos|tres|cuatro|cinco|seis)?\.?\s*(marco te[oó]rico|antecedentes|revisi[oó]n bibliogr[aá]fica)\s*$': 'Marco Teórico',
     }
 
     REFS_MAPPINGS = {
-        r'(?i)^\s*(?:\d+(\.\d+)*|[ivx]+|uno|dos|tres|cuatro|cinco|seis)\.?\s*(referencias(?: bibliogr[aá]ficas)?|bibliograf[ií]a|references|bibliography)\s*$': 'Referencias'
+        r'(?i)^\s*(?:\d+(\.\d+)*|[ivx]+|uno|dos|tres|cuatro|cinco|seis)?\.?\s*(referencias(?: bibliogr[aá]ficas)?|bibliograf[ií]a|references|bibliography)\s*$': 'Referencias'
     }
 
     FRONT_MATTER_MAPPINGS = {
@@ -266,10 +266,33 @@ class ManuscriptFormatter:
 
             # 5. Clean up captions (Figures, Tables)
             is_caption = False
-            if re.match(r'(?i)^(gr[aá]fico|ilustraci[oó]n|imagen|cuadro|figura|tabla)\s+\d+', text):
-                new_text = self._normalize_captions(text)
-                self._replace_paragraph_text(para, new_text)
-                text = new_text
+            cap_match = re.match(r'(?i)^(gr[aá]fico|ilustraci[oó]n|imagen|cuadro|figura|tabla)\s+(\d+[a-zA-Z]?)(?:[\.\-:]*\s*)(.*)', text)
+            if cap_match:
+                prefix_map = {
+                    'gráfico': 'Figura', 'grafico': 'Figura', 'ilustración': 'Figura', 'ilustracion': 'Figura', 'imagen': 'Figura', 'figura': 'Figura',
+                    'cuadro': 'Tabla', 'tabla': 'Tabla'
+                }
+                raw_prefix = cap_match.group(1).lower()
+                prefix = prefix_map.get(raw_prefix, raw_prefix.capitalize())
+                number = cap_match.group(2)
+                title_text = cap_match.group(3).strip()
+                
+                label = f"{prefix} {number}"
+                
+                para.clear()
+                run_label = para.add_run(label)
+                run_label.bold = True
+                run_label.font.name = 'Times New Roman'
+                run_label.font.size = Pt(12)
+                
+                if title_text:
+                    para.add_run(". ")
+                    run_title = para.add_run(title_text)
+                    run_title.italic = True
+                    run_title.font.name = 'Times New Roman'
+                    run_title.font.size = Pt(12)
+                
+                text = para.text
                 is_caption = True
                 para.paragraph_format.first_line_indent = Cm(0)
                 para.alignment = 1 # Center
@@ -280,11 +303,9 @@ class ManuscriptFormatter:
                 para.alignment = 3 # Justified
                 para.paragraph_format.first_line_indent = Cm(1.27)
             elif has_abstract and not is_body_started and not is_references and not is_caption:
-                # Abstract text
+                # Abstract text & Keywords
                 para.alignment = 3 # Justified
                 para.paragraph_format.first_line_indent = Cm(0)
-                if text.lower().startswith(("palabras", "keywords")):
-                    para.paragraph_format.first_line_indent = Cm(1.27)
 
             # 6. Clean up multiple spaces
             clean_text = re.sub(r' {2,}', ' ', para.text)
@@ -342,6 +363,7 @@ class ManuscriptFormatter:
         """Applies APA 7th edition formatting to a reference paragraph."""
         para.paragraph_format.left_indent = Cm(1.27)
         para.paragraph_format.first_line_indent = Cm(-1.27)
+        para.paragraph_format.line_spacing = 1.15
         para.alignment = 3  # WD_ALIGN_PARAGRAPH.JUSTIFY
 
     def _clean_empty_paragraphs(self, doc: Document):
