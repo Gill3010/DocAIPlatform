@@ -12,6 +12,7 @@ from typing import List, Dict, Tuple, Optional, Union
 import re
 import unicodedata
 from datetime import datetime
+from bs4 import BeautifulSoup
 
 from app.core.config import settings
 from app.utils.base_converter import BaseConverter, ConversionError
@@ -156,17 +157,18 @@ class DocxToJATSConverter(BaseConverter):
             jats_xml = self._build_jats_xml(metadata, body_sections, references, journal_meta=journal_meta)
 
             tree = etree.ElementTree(jats_xml)
-            tree.write(
-                output_path,
-                pretty_print=True,
-                xml_declaration=True,
-                encoding='utf-8',
-                doctype=(
-                    '<!DOCTYPE article PUBLIC "-//NLM//DTD JATS (Z39.96) Journal Publishing DTD'
-                    ' v1.1 20151215//EN"'
-                    ' "https://jats.nlm.nih.gov/publishing/1.1/JATS-journalpublishing1.dtd">'
-                ),
-            )
+            with open(output_path, 'wb') as f:
+                tree.write(
+                    f,
+                    pretty_print=True,
+                    xml_declaration=True,
+                    encoding='utf-8',
+                    doctype=(
+                        '<!DOCTYPE article PUBLIC "-//NLM//DTD JATS (Z39.96) Journal Publishing DTD'
+                        ' v1.1 20151215//EN"'
+                        ' "https://jats.nlm.nih.gov/publishing/1.1/JATS-journalpublishing1.dtd">'
+                    ),
+                )
 
             return True
 
@@ -1669,7 +1671,7 @@ class DocxToJATSConverter(BaseConverter):
 
 
 class JATSToDocxConverter(BaseConverter):
-    """Convert JATS XML to Microsoft Word document"""
+    """Convierte JATS XML a MS Word recorriendo el árbol y construyendo nodos."""
     
     @property
     def source_formats(self) -> List[str]:
@@ -1678,125 +1680,575 @@ class JATSToDocxConverter(BaseConverter):
     @property
     def target_formats(self) -> List[str]:
         return ['docx']
-    
+
     def convert(self, input_path: str, output_path: str) -> bool:
-        """
-        Convert JATS XML to DOCX
-        Creates a formatted Word document from JATS structure
-        """
         try:
             self.ensure_directory(output_path)
-            
-            # Parse XML
-            tree = etree.parse(input_path)
-            root = tree.getroot()
-            
-            # Check if it's JATS (look for article element)
-            if root.tag not in ['article', '{http://jats.nlm.nih.gov}article']:
-                raise ConversionError("El archivo XML no es formato JATS válido")
-            
-            # Create Word document
             doc = Document()
+            xml_tree = etree.parse(input_path)
+            root = xml_tree.getroot()
             
-            # Extract and add content
-            self._add_front_matter(doc, root)
-            self._add_body(doc, root)
-            self._add_references(doc, root)
+            if root.tag not in ['article', '{http://jats.nlm.nih.gov}article']:
+                raise ConversionError("El archivo no es un JATS válido")
+
+            # 1. Metadata -> Front
+            front = root.find('.//front')
+            if front is not None:
+                title = root.findtext('.//article-title') or 'Sin Título'
+                doc.add_heading(title, level=0)
             
-            # Save document
+            # 2. Recorrer Body iterativamente para mantener el orden
+            body = root.find('.//body')
+            if body is not None:
+                self._process_node(body, doc)
+            
             doc.save(output_path)
-            
             return True
             
         except etree.XMLSyntaxError as e:
             raise ConversionError(f"Error de sintaxis XML: {str(e)}")
         except Exception as e:
-            raise ConversionError(f"Conversión JATS XML a DOCX falló: {str(e)}")
-    
-    def _add_front_matter(self, doc: Document, root: etree.Element):
-        """Add title, authors, and abstract to document"""
-        
-        # Find front element
-        front = root.find('.//front')
-        if front is None:
-            return
-        
-        # Title
-        title_elem = front.find('.//article-title')
-        if title_elem is not None and title_elem.text:
-            doc.add_heading(title_elem.text, level=1)
-        
-        # Authors
-        authors = front.findall('.//contrib[@contrib-type="author"]')
-        if authors:
-            author_names = []
-            for author in authors:
-                surname = author.find('.//surname')
-                given_names = author.find('.//given-names')
-                if surname is not None:
-                    name = surname.text or ''
-                    if given_names is not None and given_names.text:
-                        name = f"{given_names.text} {name}"
-                    author_names.append(name)
+            raise ConversionError(f"Fallo programático en JATS a DOCX: {str(e)}")
+
+    def _process_node(self, node, doc_context, current_paragraph=None):
+        """
+        Atraviesa el árbol de forma recursiva interpretando etiquetas JATS.
+        doc_context: El Document o Cell donde se insertará contenido.
+        """
+        tag = node.tag.split('}')[-1]
+
+        # Jerarquía de títulos
+        if tag == 'sec':
+            title_node = node.find('title')
+            if title_node is not None:
+                depth = len(list(node.iterancestors('sec'))) + 1
+                doc_context.add_heading(title_node.text or '', level=depth)
+            for child in node:
+                if child.tag.split('}')[-1] != 'title':
+                    self._process_node(child, doc_context)
+
+        # Mantenimiento de estilos en línea en párrafos
+        elif tag == 'p':
+            p = doc_context.add_paragraph()
+            self._process_inline_mixed_content(node, p)
+
+        # Recreación de tablas (etiquetas XHTML)
+        elif tag in ['table-wrap', 'table']:
+            self._process_table(node, doc_context)
             
-            if author_names:
-                doc.add_paragraph(', '.join(author_names))
-        
-        # Abstract
-        abstract = front.find('.//abstract')
-        if abstract is not None:
-            doc.add_heading('Resumen', level=2)
-            for p in abstract.findall('.//p'):
-                if p.text:
-                    doc.add_paragraph(p.text.strip())
-        
-        # Keywords
-        kwd_groups = front.findall('.//kwd-group')
-        if kwd_groups:
-            doc.add_heading('Palabras clave', level=2)
-            keywords = []
-            for kwd_group in kwd_groups:
-                for kwd in kwd_group.findall('.//kwd'):
-                    if kwd.text:
-                        keywords.append(kwd.text)
-            if keywords:
-                doc.add_paragraph(', '.join(keywords))
-    
-    def _add_body(self, doc: Document, root: etree.Element):
-        """Add body sections to document"""
-        
-        body = root.find('.//body')
-        if body is None:
-            return
-        
-        for sec in body.findall('.//sec'):
-            # Section title
-            title = sec.find('.//title')
-            if title is not None and title.text:
-                doc.add_heading(title.text, level=2)
+        else:
+            # Continuar profundizando
+            for child in node:
+                self._process_node(child, doc_context)
+
+    def _process_inline_mixed_content(self, node, paragraph):
+        """Procesa texto, <italic>, <bold>, <xref> intercalados."""
+        if node.text:
+            paragraph.add_run(node.text)
+        for child in node:
+            tag = child.tag.split('}')[-1]
+            run = paragraph.add_run(child.text or '')
             
-            # Section paragraphs
-            for p in sec.findall('.//p'):
-                text = ''.join(p.itertext()).strip()
-                if text:
-                    doc.add_paragraph(text)
+            if tag == 'italic':
+                run.italic = True
+            elif tag == 'bold':
+                run.bold = True
+                
+            if child.tail:
+                paragraph.add_run(child.tail)
+
+    def _process_table(self, node, doc_context):
+        """Constructor de tablas DOCX desde XHTML estructural."""
+        # Extraer filas (<tr>), asumiendo un thead/tbody estándar
+        rows = node.findall('.//tr')
+        if not rows:
+            return
+            
+        cols_count = max([len(tr.findall('.//td')) + len(tr.findall('.//th')) for tr in rows])
+        table = doc_context.add_table(rows=len(rows), cols=cols_count)
+        table.style = 'Table Grid'
+        
+        for r_idx, tr in enumerate(rows):
+            cells = tr.findall('.//td') + tr.findall('.//th')
+            for c_idx, cell in enumerate(cells):
+                if c_idx < cols_count:
+                    # En una tabla JATS el TD puede tener <p>, <bold>, etc.
+                    self._process_inline_mixed_content(cell, table.cell(r_idx, c_idx).paragraphs[0])
+
+
+class JATSToHTMLConverter(BaseConverter):
+    """Conversión robusta de JATS a HTML5 usando motor XSLT nativo."""
     
-    def _add_references(self, doc: Document, root: etree.Element):
-        """Add references to document"""
+    @property
+    def source_formats(self) -> List[str]:
+        return ['xml']
+
+    @property
+    def target_formats(self) -> List[str]:
+        return ['html']
+
+    def get_xslt_template(self) -> str:
+        """
+        Retorna la plantilla XSL para JATS con formato APA.
+        """
+        return '''<?xml version="1.0" encoding="UTF-8"?>
+        <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:xlink="http://www.w3.org/1999/xlink">
+            <xsl:output method="html" encoding="UTF-8" indent="yes" default-doctype-public="-//W3C//DTD HTML 5//EN"/>
+            
+            <xsl:template match="/">
+                <html>
+                    <head>
+                        <title><xsl:value-of select="//article-title"/></title>
+                        <style>
+                            body {
+                                line-height: 1.15;
+                                font-family: "Times New Roman", Times, serif;
+                                max-width: 800px;
+                                margin: 40px auto;
+                                padding: 0 20px;
+                            }
+                            /* Sangría primera línea 1.27 cm (Norma APA) */
+                            p {
+                                text-indent: 1.27cm;
+                                margin-top: 0;
+                                margin-bottom: 10px;
+                            }
+                            /* Párrafos dentro de excepciones (resumen, abstract, palabras clave) sin sangría */
+                            .abstract p, .kwd-group p, .front-matter p {
+                                text-indent: 0;
+                            }
+                            /* Sangría francesa para referencias */
+                            .ref-list .ref {
+                                padding-left: 1.27cm;
+                                text-indent: -1.27cm;
+                                margin-bottom: 10px;
+                                display: block;
+                            }
+                            /* Numeración de gráficos/tablas en negrita */
+                            .label {
+                                font-weight: bold;
+                                display: block;
+                                text-indent: 0;
+                            }
+                            /* Títulos de gráficos/tablas en cursiva */
+                            .caption-title {
+                                font-style: italic;
+                                display: block;
+                                text-indent: 0;
+                                margin-bottom: 10px;
+                            }
+                            .jats-graphic {
+                                max-width: 100%;
+                                height: auto;
+                                display: block;
+                                margin: 10px 0;
+                            }
+                            a {
+                                color: #0056b3;
+                                text-decoration: none;
+                            }
+                            a:hover {
+                                text-decoration: underline;
+                            }
+                            table {
+                                border-collapse: collapse;
+                                width: 100%;
+                                margin-bottom: 15px;
+                            }
+                            th, td {
+                                border: 1px solid #000;
+                                padding: 5px;
+                                text-align: left;
+                            }
+                            /* Metadatos (Autor, Fechas, Historial) */
+                            .article-title {
+                                color: #1765a6; /* Azul de la referencia */
+                                font-size: 24px;
+                                font-weight: normal;
+                                margin-bottom: 30px;
+                                text-indent: 0;
+                            }
+                            .author-block {
+                                margin-bottom: 20px;
+                                text-indent: 0;
+                            }
+                            .author-block div {
+                                margin: 0;
+                                line-height: 1.15;
+                            }
+                            .history-block {
+                                margin-top: 20px;
+                                margin-bottom: 20px;
+                                text-indent: 0;
+                            }
+                            .article-doi {
+                                margin-bottom: 30px;
+                                text-indent: 0;
+                            }
+                        </style>
+                    </head>
+                    <body>
+                        <div class="front-matter">
+                            <!-- Título principal en Azul -->
+                            <h1 class="article-title"><xsl:value-of select="//front/article-meta/title-group/article-title"/></h1>
+                            
+                            <!-- Lista de Autores -->
+                            <div class="authors-list">
+                                <xsl:apply-templates select="//front/article-meta/contrib-group/contrib[@contrib-type='author']"/>
+                            </div>
+                            
+                            <!-- Fechas -->
+                            <div class="history-block">
+                                <xsl:apply-templates select="//front/article-meta/history/date"/>
+                            </div>
+                            
+                            <!-- DOI -->
+                            <xsl:variable name="doi" select="//front/article-meta/article-id[@pub-id-type='doi']"/>
+                            <xsl:if test="$doi != ''">
+                                <div class="article-doi">
+                                    <strong>DOI: </strong>
+                                    <xsl:choose>
+                                        <xsl:when test="starts-with($doi, 'http')">
+                                            <a href="{$doi}"><xsl:value-of select="$doi"/></a>
+                                        </xsl:when>
+                                        <xsl:otherwise>
+                                            <a href="https://doi.org/{$doi}">https://doi.org/<xsl:value-of select="$doi"/></a>
+                                        </xsl:otherwise>
+                                    </xsl:choose>
+                                </div>
+                            </xsl:if>
+                            
+                            <!-- Abstract and Keywords -->
+                            <!-- Bloque 1: Resumen y Palabras Clave (Idioma principal / Español) -->
+                            <xsl:apply-templates select="//front/article-meta/abstract[not(@xml:lang) or @xml:lang!='en']"/>
+                            <xsl:apply-templates select="//front/article-meta/kwd-group[not(@xml:lang) or @xml:lang!='en']"/>
+                            
+                            <!-- Bloque 2: Abstract y Keywords (Inglés / Traducciones) -->
+                            <xsl:apply-templates select="//front/article-meta/trans-abstract"/>
+                            <xsl:apply-templates select="//front/article-meta/abstract[@xml:lang='en']"/>
+                            <xsl:apply-templates select="//front/article-meta/kwd-group[@xml:lang='en']"/>
+                        </div>
+                        <div class="article-body">
+                            <!-- Se renderiza sólo el body, obviando el dump gigante de front original -->
+                            <xsl:apply-templates select="article/body"/>
+                        </div>
+                        <div class="article-back">
+                            <xsl:apply-templates select="article/back"/>
+                        </div>
+                    </body>
+                </html>
+            </xsl:template>
+
+            <!-- Template para Autores -->
+            <xsl:template match="contrib[@contrib-type='author']">
+                <div class="author-block">
+                    <!-- Nombre de Autor (Negrita) -->
+                    <div class="author-name">
+                        <strong>
+                            <xsl:value-of select="name/given-names"/>
+                            <xsl:text> </xsl:text>
+                            <xsl:value-of select="name/surname"/>
+                        </strong>
+                    </div>
+                    
+                    <!-- Afiliación -->
+                    <xsl:variable name="aff-rid" select="xref[@ref-type='aff']/@rid"/>
+                    <!-- Obtenemos el aff correspondiente o usamos aff interno al contrib -->
+                    <xsl:for-each select="//aff[@id=$aff-rid] | aff">
+                        <div class="author-aff">
+                            <!-- Si hay institución estructurada, la extraemos limpiamente -->
+                            <xsl:if test="institution">
+                                <xsl:value-of select="institution"/>
+                            </xsl:if>
+                            <!-- Si no tiene institution, mostramos el texto pelado de <aff> excluyendo la label -->
+                            <xsl:if test="not(institution)">
+                                <xsl:value-of select="text()"/>
+                            </xsl:if>
+                        </div>
+                        <div class="author-country">
+                            <xsl:if test="country">
+                                <xsl:value-of select="country"/>
+                            </xsl:if>
+                        </div>
+                    </xsl:for-each>
+                    
+                    <!-- Email -->
+                    <xsl:variable name="corresp-rid" select="xref[@ref-type='corresp']/@rid"/>
+                    <xsl:variable name="corresp-node" select="//corresp[@id=$corresp-rid]"/>
+                    <div class="author-email">
+                        <xsl:choose>
+                            <xsl:when test="email">
+                                <xsl:value-of select="email"/>
+                            </xsl:when>
+                            <xsl:when test="$corresp-node/email">
+                                <xsl:value-of select="$corresp-node/email"/>
+                            </xsl:when>
+                        </xsl:choose>
+                    </div>
+                    
+                    <!-- ORCID -->
+                    <xsl:if test="contrib-id[@contrib-id-type='orcid']">
+                        <div class="author-orcid">
+                            <a href="{contrib-id[@contrib-id-type='orcid']}">
+                                <xsl:value-of select="contrib-id[@contrib-id-type='orcid']"/>
+                            </a>
+                        </div>
+                    </xsl:if>
+                </div>
+            </xsl:template>
+
+            <!-- Template para Fechas (Historial) -->
+            <xsl:template match="date">
+                <div>
+                    <xsl:choose>
+                        <xsl:when test="@date-type='received' or @date-type='rev-recd'">Fecha de recibido: </xsl:when>
+                        <xsl:when test="@date-type='accepted'">Fecha de aceptación: </xsl:when>
+                        <xsl:otherwise><xsl:value-of select="@date-type"/>: </xsl:otherwise>
+                    </xsl:choose>
+                    
+                    <xsl:choose>
+                        <xsl:when test="year">
+                            <xsl:if test="day"><xsl:value-of select="day"/> de </xsl:if>
+                            <xsl:choose>
+                                <xsl:when test="month='1' or month='01'">enero</xsl:when>
+                                <xsl:when test="month='2' or month='02'">febrero</xsl:when>
+                                <xsl:when test="month='3' or month='03'">marzo</xsl:when>
+                                <xsl:when test="month='4' or month='04'">abril</xsl:when>
+                                <xsl:when test="month='5' or month='05'">mayo</xsl:when>
+                                <xsl:when test="month='6' or month='06'">junio</xsl:when>
+                                <xsl:when test="month='7' or month='07'">julio</xsl:when>
+                                <xsl:when test="month='8' or month='08'">agosto</xsl:when>
+                                <xsl:when test="month='9' or month='09'">septiembre</xsl:when>
+                                <xsl:when test="month='10'">octubre</xsl:when>
+                                <xsl:when test="month='11'">noviembre</xsl:when>
+                                <xsl:when test="month='12'">diciembre</xsl:when>
+                                <xsl:otherwise><xsl:value-of select="month"/></xsl:otherwise>
+                            </xsl:choose>
+                            <xsl:text> de </xsl:text><xsl:value-of select="year"/>
+                        </xsl:when>
+                        <xsl:otherwise>
+                            <xsl:value-of select="."/>
+                        </xsl:otherwise>
+                    </xsl:choose>
+                </div>
+            </xsl:template>
+
+            <!-- Abstract y Keywords (sin sangría de 1.27) -->
+            <xsl:template match="abstract | trans-abstract">
+                <div class="abstract">
+                    <!-- Evitamos texto duro, pero podemos imprimir el título si existe -->
+                    <xsl:if test="title">
+                        <h3><xsl:value-of select="title"/></h3>
+                    </xsl:if>
+                    <xsl:apply-templates select="*[not(self::title)]"/>
+                </div>
+            </xsl:template>
+            
+            <xsl:template match="kwd-group">
+                <div class="kwd-group">
+                    <p>
+                        <strong>
+                            <xsl:choose>
+                                <xsl:when test="@xml:lang='en'">Keywords: </xsl:when>
+                                <xsl:otherwise>Palabras clave: </xsl:otherwise>
+                            </xsl:choose>
+                        </strong>
+                        <xsl:apply-templates select="kwd"/>
+                    </p>
+                </div>
+            </xsl:template>
+            
+            <xsl:template match="kwd">
+                <xsl:value-of select="."/>
+                <xsl:if test="position() != last()">, </xsl:if>
+            </xsl:template>
+
+            <!-- Secciones -->
+            <xsl:template match="sec">
+                <!-- Se añade @id para que xref funcione correctamente -->
+                <section id="{@id}">
+                    <xsl:variable name="depth" select="count(ancestor::sec) + 1"/>
+                    <xsl:element name="h{$depth}">
+                        <xsl:value-of select="title"/>
+                    </xsl:element>
+                    <xsl:apply-templates select="*[not(self::title)]"/>
+                </section>
+            </xsl:template>
+
+            <!-- Referencias Cruzadas (Clicables) -->
+            <xsl:template match="xref">
+                <a href="#{@rid}">
+                    <xsl:apply-templates/>
+                </a>
+            </xsl:template>
+
+            <!-- Listado de Referencias -->
+            <xsl:template match="ref-list">
+                <h2>Referencias</h2>
+                <div class="ref-list">
+                    <xsl:apply-templates select="ref"/>
+                </div>
+            </xsl:template>
+
+            <!-- Elemento Referencia: con ID para ancla, la clase aplicará sangría francesa -->
+            <xsl:template match="ref">
+                <div class="ref" id="{@id}">
+                    <xsl:apply-templates select="mixed-citation | element-citation"/>
+                </div>
+            </xsl:template>
+
+            <!-- Contenedores de Figuras y Tablas -->
+            <xsl:template match="fig | table-wrap">
+                <div id="{@id}" style="margin: 20px 0;">
+                    <!-- Numeración (Negrita) -->
+                    <xsl:if test="label">
+                        <span class="label"><xsl:value-of select="label"/></span>
+                    </xsl:if>
+                    <!-- Títulos (Cursiva) -->
+                    <xsl:if test="caption/title">
+                        <span class="caption-title"><xsl:value-of select="caption/title"/></span>
+                    </xsl:if>
+                    <xsl:apply-templates select="*[not(self::label or self::caption)]"/>
+                </div>
+            </xsl:template>
+
+            <xsl:template match="graphic">
+                <!-- Para extraer los src desde URL (xlink:href) -->
+                <img src="{@xlink:href}" alt="{../caption/title | .//alt-text}" class="jats-graphic"/>
+            </xsl:template>
+            
+            <xsl:template match="table">
+                <table>
+                    <xsl:copy-of select="@*"/>
+                    <xsl:apply-templates/>
+                </table>
+            </xsl:template>
+            
+            <xsl:template match="thead|tbody|tr|th|td">
+                <xsl:copy>
+                    <xsl:copy-of select="@*"/>
+                    <xsl:apply-templates/>
+                </xsl:copy>
+            </xsl:template>
+
+            <!-- Texto y Estilos Inline -->
+            <xsl:template match="p">
+                <p><xsl:apply-templates/></p>
+            </xsl:template>
+            
+            <xsl:template match="italic | i">
+                <em><xsl:apply-templates/></em>
+            </xsl:template>
+            
+            <xsl:template match="bold | b">
+                <strong><xsl:apply-templates/></strong>
+            </xsl:template>
+
+            <!-- Omisión de elementos ignorables -->
+            <xsl:template match="article-meta | journal-meta | ext-link | email | uri">
+                <xsl:apply-templates/>
+            </xsl:template>
+        </xsl:stylesheet>'''
+
+    def convert(self, input_path: str, output_path: str) -> bool:
+        try:
+            self.ensure_directory(output_path)
+            
+            xml_doc = etree.parse(input_path)
+            xslt_root = etree.XML(self.get_xslt_template().encode('utf-8'))
+            transform = etree.XSLT(xslt_root)
+            
+            html_result = transform(xml_doc)
+            with open(output_path, 'wb') as f:
+                html_result.write(f, pretty_print=True, method="html", encoding="utf-8")
+            return True
+            
+        except etree.XMLSyntaxError as e:
+            raise ConversionError(f"Error de sintaxis en el XML de origen: {str(e)}")
+        except Exception as e:
+            raise ConversionError(f"Fallo en conversión JATS a HTML: {str(e)}")
+
+
+class HTMLToJATSConverter(BaseConverter):
+    """Convierte HTML estructurado por plantillas de vuelta a un JATS XML validable."""
+    
+    @property
+    def source_formats(self) -> List[str]:
+        return ['html', 'htm']
+
+    @property
+    def target_formats(self) -> List[str]:
+        return ['xml']
+
+    def convert(self, input_path: str, output_path: str) -> bool:
+        try:
+            self.ensure_directory(output_path)
+            with open(input_path, 'r', encoding='utf-8') as f:
+                soup = BeautifulSoup(f, 'html.parser')
+
+            root = etree.Element("article")
+            
+            self._build_front(soup, root)
+            self._build_body(soup, root)
+            self._build_back(soup, root)
+
+            tree = etree.ElementTree(root)
+            with open(output_path, 'wb') as f:
+                tree.write(
+                    f, pretty_print=True, xml_declaration=True, encoding='utf-8',
+                    doctype='<!DOCTYPE article PUBLIC "-//NLM//DTD JATS (Z39.96) Journal Publishing DTD v1.1 20151215//EN" "https://jats.nlm.nih.gov/publishing/1.1/JATS-journalpublishing1.dtd">'
+                )
+            return True
+            
+        except Exception as e:
+            raise ConversionError(f"Error parseando HTML a JATS: {str(e)}")
+
+    def _build_front(self, soup: BeautifulSoup, root: etree.Element):
+        front = etree.SubElement(root, "front")
+        article_meta = etree.SubElement(front, "article-meta")
         
-        back = root.find('.//back')
-        if back is None:
+        title_group = etree.SubElement(article_meta, "title-group")
+        title_node = etree.SubElement(title_group, "article-title")
+        
+        h1 = soup.find('h1', class_='article-title')
+        title_node.text = h1.text.strip() if h1 else 'Título Desconocido'
+
+        abstract_div = soup.find('div', class_='abstract')
+        if abstract_div:
+            abstract_node = etree.SubElement(article_meta, "abstract")
+            p_node = etree.SubElement(abstract_node, "p")
+            p_node.text = abstract_div.text.strip()
+
+    def _build_body(self, soup: BeautifulSoup, root: etree.Element):
+        body = etree.SubElement(root, "body")
+        main_content = soup.find('div', class_='article-body')
+        
+        if not main_content:
             return
+
+        current_sec = None
+        for element in main_content.children:
+            if element.name in ['h1', 'h2']:
+                current_sec = etree.SubElement(body, "sec")
+                title = etree.SubElement(current_sec, "title")
+                title.text = element.text.strip()
+            elif element.name == 'p':
+                parent = current_sec if current_sec is not None else body
+                p = etree.SubElement(parent, "p")
+                p.text = element.text.strip()
+
+    def _build_back(self, soup: BeautifulSoup, root: etree.Element):
+        """
+        Empaqueta las referencias de forma plana bajo <mixed-citation>
+        para evitar anidados incorrectos de <i>, <b> que rompan el DTD.
+        """
+        back = etree.SubElement(root, "back")
+        ref_list = etree.SubElement(back, "ref-list")
         
-        ref_list = back.find('.//ref-list')
-        if ref_list is None:
-            return
-        
-        doc.add_heading('Referencias', level=2)
-        
-        for ref in ref_list.findall('.//ref'):
-            mixed_citation = ref.find('.//mixed-citation')
-            if mixed_citation is not None:
-                text = ''.join(mixed_citation.itertext()).strip()
-                if text:
-                    doc.add_paragraph(text, style='List Number')
+        refs_container = soup.find(['ul', 'ol'], class_='references')
+        if refs_container:
+            for i, li in enumerate(refs_container.find_all('li', recursive=False)):
+                ref_node = etree.SubElement(ref_list, "ref", id=f"ref-{i+1}")
+                mixed_cit = etree.SubElement(ref_node, "mixed-citation")
+                mixed_cit.text = li.get_text(separator=' ', strip=True)
+
