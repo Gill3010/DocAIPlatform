@@ -26,7 +26,9 @@ dist/
 .idea/
 .cursor/
 .cursor-server/
+.antigravity-ide-server/
 .antigravity-server/
+.securecoder/
 .gemini/
 .npm/
 *.swp
